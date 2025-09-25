@@ -237,13 +237,33 @@ The system includes 10 sample certificates from prestigious institutions like MI
 ## 🎬 Demo
 
 ### Live Demo
-- **Frontend**: [Visit VeritasAI](http://localhost:5173) (when running locally)
-- **Backend API**: [Health Check](http://localhost:3001/health) (when running locally)
+- **🌐 Frontend**: [Visit VeritasAI Live](https://prash2005-project24.github.io/VeritasAI/) - *Deployed on GitHub Pages*
+- **🔧 Backend API**: [Health Check](https://veritasai-backend.onrender.com/health) - *Deployed on Render*
+- **📊 Local Development**: [localhost:5173](http://localhost:5173) & [localhost:3001](http://localhost:3001/health)
 
 ### Demo Credentials
 - The system includes 17 sample certificates for testing
 - Upload any image file to test OCR functionality
 - Use the admin panel to view analytics and manage certificates
+
+## 🚀 Deployment
+
+### Production Deployment
+- **Frontend**: Automatically deployed to GitHub Pages on every push to `main`
+- **Backend**: Deploy to Render.com or Vercel for free hosting
+- **Full Guide**: See [DEPLOYMENT.md](DEPLOYMENT.md) for detailed instructions
+
+### Quick Deploy
+```bash
+# Frontend (GitHub Pages)
+# Push to main branch - auto-deploys via GitHub Actions
+
+# Backend (Render.com)
+# 1. Create account at render.com
+# 2. Connect GitHub repo
+# 3. Select 'backend' folder
+# 4. Set start command: npm start
+```
 
 ## 🤝 Contributing
 

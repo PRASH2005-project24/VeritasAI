@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: veritasai-backend
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: PORT
+        value: 10000
+      - key: NODE_ENV
+        value: production
+      - key: CORS_ORIGIN
+        value: https://prash2005-project24.github.io
+    rootDir: backend

@@ -1,15 +1,13 @@
 import axios from 'axios';
+import { API_BASE_URL, apiConfig, getApiUrl } from '../config/api.js';
 
-// Base API configuration
-const BASE_URL = 'http://localhost:3001';
+// Use environment-aware base URL
+const BASE_URL = API_BASE_URL;
 
 // Create axios instance with retry logic
 const api = axios.create({
+  ...apiConfig,
   baseURL: BASE_URL,
-  timeout: 30000, // 30 seconds timeout for file uploads
-  headers: {
-    'Content-Type': 'application/json',
-  },
 });
 
 // Request interceptor for debugging

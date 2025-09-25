@@ -26,9 +26,33 @@ process.on('unhandledRejection', (reason, promise) => {
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+// CORS Configuration for production
+const corsOptions = {
+  origin: [
+    'http://localhost:5173', // Local development
+    'http://localhost:3000', // Alternative local port
+    'https://prash2005-project24.github.io', // GitHub Pages
+    process.env.CORS_ORIGIN // Environment variable for custom domains
+  ].filter(Boolean), // Remove any undefined values
+  credentials: true,
+  optionsSuccessStatus: 200,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+};
+
 // Middleware
-app.use(helmet());
-app.use(cors());
+app.use(helmet({
+  crossOriginEmbedderPolicy: false,
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      scriptSrc: ["'self'"],
+      imgSrc: ["'self'", "data:", "https:"],
+    },
+  },
+}));
+app.use(cors(corsOptions));
 app.use(morgan('combined'));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
