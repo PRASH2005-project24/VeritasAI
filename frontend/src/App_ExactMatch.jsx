@@ -71,39 +71,34 @@ class ErrorBoundary extends React.Component {
   }
 }
 
-// Authentication Context
+// Simple Authentication Context
 const AuthContext = createContext();
 
 const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
 
-  // Load user from localStorage on app start
   React.useEffect(() => {
-    try {
-      const savedUser = localStorage.getItem('veritasai_user');
-      if (savedUser) {
-        const userData = JSON.parse(savedUser);
-        setUser(userData);
+    const savedUser = localStorage.getItem('veritasai_user');
+    if (savedUser) {
+      try {
+        setUser(JSON.parse(savedUser));
+      } catch (error) {
+        console.error('Error loading user:', error);
+        localStorage.removeItem('veritasai_user');
       }
-    } catch (error) {
-      console.error('Error loading user from localStorage:', error);
-      localStorage.removeItem('veritasai_user');
     }
   }, []);
 
-  // Simple login function
   const login = (userData) => {
     setUser(userData);
     localStorage.setItem('veritasai_user', JSON.stringify(userData));
   };
 
-  // Logout function
   const logout = () => {
     setUser(null);
     localStorage.removeItem('veritasai_user');
   };
 
-  // Check if user is authenticated
   const isAuthenticated = () => {
     return !!user;
   };
@@ -1698,54 +1693,33 @@ const ContactPage = () => (
 // Register Page Component
 const RegisterPage = () => {
   const { login, isAuthenticated } = useAuth();
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [name, setName] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [selectedRole, setSelectedRole] = useState('student');
-  const [isLoading, setIsLoading] = useState(false);
+  const [role, setRole] = useState('student');
   const [error, setError] = useState('');
+  const navigate = useNavigate();
 
   if (isAuthenticated()) {
     return <Navigate to="/" replace />;
   }
 
-  const handleRegister = (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
-    setError('');
-
-    if (!name.trim()) {
-      setError('Name is required');
-      return;
-    }
-    if (!email || !password) {
-      setError('Email and password are required');
-      return;
-    }
-    if (password.length < 3) {
-      setError('Password must be at least 3 characters');
-      return;
-    }
-    if (password !== confirmPassword) {
-      setError('Passwords do not match');
+    if (!name || !email || !password) {
+      setError('Please fill in all fields');
       return;
     }
 
-    setIsLoading(true);
-    
-    try {
-      const userData = {
-        id: Date.now(),
-        name: name.trim(),
-        email: email.trim(),
-        role: selectedRole
-      };
-      login(userData);
-    } catch (error) {
-      setError('Registration failed. Please try again.');
-    }
-    
-    setIsLoading(false);
+    const userData = {
+      id: Date.now(),
+      name,
+      email,
+      role
+    };
+
+    login(userData);
+    navigate('/');
   };
 
   return (
@@ -1764,7 +1738,7 @@ const RegisterPage = () => {
             </div>
           )}
           
-          <form className="login-form" onSubmit={handleRegister}>
+          <form className="login-form" onSubmit={handleSubmit}>
             <div className="form-group">
               <label>Full Name</label>
               <input 
@@ -1791,7 +1765,7 @@ const RegisterPage = () => {
               <label>Password</label>
               <input 
                 type="password" 
-                placeholder="Create a password (min 3 chars)"
+                placeholder="Create a password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
@@ -1799,21 +1773,10 @@ const RegisterPage = () => {
             </div>
             
             <div className="form-group">
-              <label>Confirm Password</label>
-              <input 
-                type="password" 
-                placeholder="Re-enter your password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                required
-              />
-            </div>
-            
-            <div className="form-group">
               <label>Account Type</label>
               <select 
-                value={selectedRole} 
-                onChange={(e) => setSelectedRole(e.target.value)}
+                value={role} 
+                onChange={(e) => setRole(e.target.value)}
                 className="role-select"
               >
                 <option value="student">🎓 Student</option>
@@ -1825,16 +1788,8 @@ const RegisterPage = () => {
             <button 
               type="submit" 
               className="login-submit"
-              disabled={isLoading || !email || !password || !name}
             >
-              {isLoading ? (
-                <>
-                  <div className="login-spinner"></div>
-                  Creating Account...
-                </>
-              ) : (
-                'Create Account'
-              )}
+              Create Account
             </button>
           </form>
           
@@ -1856,84 +1811,39 @@ const LoginPage = () => {
   const { login, isAuthenticated } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [name, setName] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [selectedRole, setSelectedRole] = useState('student');
-  const [isLoading, setIsLoading] = useState(false);
-  const [isRegistering, setIsRegistering] = useState(false);
+  const [role, setRole] = useState('student');
   const [error, setError] = useState('');
+  const navigate = useNavigate();
 
   if (isAuthenticated()) {
     return <Navigate to="/" replace />;
   }
 
-  const handleLogin = (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
-    setError('');
-    
     if (!email || !password) {
       setError('Please enter email and password');
       return;
     }
 
-    setIsLoading(true);
-    
-    try {
-      const userData = {
-        id: Date.now(),
-        name: email.split('@')[0],
-        email: email,
-        role: selectedRole
-      };
-      login(userData);
-    } catch (error) {
-      setError('Login failed. Please try again.');
-    }
-    
-    setIsLoading(false);
-  };
+    const userData = {
+      id: Date.now(),
+      name: email.split('@')[0],
+      email,
+      role
+    };
 
-  const handleRegister = async (e) => {
-    e.preventDefault();
-    setError('');
-
-    // Simple validation
-    if (!name.trim()) {
-      setError('Name is required');
-      return;
-    }
-    if (password.length < 3) {
-      setError('Password must be at least 3 characters');
-      return;
-    }
-    if (password !== confirmPassword) {
-      setError('Passwords do not match');
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      const userData = {
-        id: Date.now(),
-        name: name.trim(),
-        email: email.trim(),
-        role: selectedRole
-      };
-      login(userData);
-    } catch (error) {
-      setError('Registration failed. Please try again.');
-    } finally {
-      setIsLoading(false);
-    }
+    login(userData);
+    navigate('/');
   };
 
   return (
     <div className="page-content">
       <div className="container">
         <div className="login-container">
-          <h1>{isRegistering ? 'Join VeritasAI' : 'Login to VeritasAI'}</h1>
+          <h1>Login to VeritasAI</h1>
           <p className="login-subtitle">
-            {isRegistering ? 'Create your secure certificate verification account' : 'Secure certificate verification platform'}
+            Secure certificate verification platform
           </p>
           
           {error && (
@@ -1943,20 +1853,7 @@ const LoginPage = () => {
             </div>
           )}
           
-          <form className="login-form" onSubmit={isRegistering ? handleRegister : handleLogin}>
-            {isRegistering && (
-              <div className="form-group">
-                <label>Full Name</label>
-                <input 
-                  type="text" 
-                  placeholder="Enter your full name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  required
-                />
-              </div>
-            )}
-            
+          <form className="login-form" onSubmit={handleSubmit}>
             <div className="form-group">
               <label>Email Address</label>
               <input 
@@ -1972,96 +1869,50 @@ const LoginPage = () => {
               <label>Password</label>
               <input 
                 type="password" 
-                placeholder={isRegistering ? "Create a password (min 6 chars)" : "Enter your password"}
+                placeholder="Enter your password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
               />
             </div>
             
-            {isRegistering && (
-              <div className="form-group">
-                <label>Confirm Password</label>
-                <input 
-                  type="password" 
-                  placeholder="Re-enter your password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  required
-                />
-              </div>
-            )}
-            
-            {(isRegistering || !isRegistering) && (
-              <div className="form-group">
-                <label>Account Type</label>
-                <select 
-                  value={selectedRole} 
-                  onChange={(e) => setSelectedRole(e.target.value)}
-                  className="role-select"
-                >
-                  <option value="student">🎓 Student</option>
-                  <option value="verifier">🔍 Verifier/Employer</option>
-                  <option value="institution">🏛️ Institution</option>
-                  {!isRegistering && <option value="admin">👑 Administrator</option>}
-                </select>
-              </div>
-            )}
-            
+            <div className="form-group">
+              <label>Account Type</label>
+              <select 
+                value={role} 
+                onChange={(e) => setRole(e.target.value)}
+                className="role-select"
+              >
+                <option value="student">🎓 Student</option>
+                <option value="verifier">🔍 Verifier/Employer</option>
+                <option value="institution">🏛️ Institution</option>
+                <option value="admin">👑 Administrator</option>
+              </select>
+            </div>
             
             <button 
               type="submit" 
               className="login-submit"
-              disabled={isLoading || !email || !password}
             >
-              {isLoading ? (
-                <>
-                  <div className="login-spinner"></div>
-                  {isRegistering ? 'Creating Account...' : 'Signing In...'}
-                </>
-              ) : (
-                isRegistering ? 'Create Account' : 'Sign In'
-              )}
+              Sign In
             </button>
           </form>
           
           <div className="auth-switch">
             <p>
-              {isRegistering ? 'Already have an account?' : "Don't have an account?"}
-              <button 
-                className="auth-switch-btn"
-                onClick={() => {
-                  setIsRegistering(!isRegistering);
-                  setError('');
-                  setEmail('');
-                  setPassword('');
-                  setName('');
-                  setConfirmPassword('');
-                }}
-                disabled={isLoading}
-              >
-                {isRegistering ? 'Sign In' : 'Sign Up'}
-              </button>
+              Don't have an account?
+              <Link to="/register" className="auth-switch-btn">
+                Sign Up
+              </Link>
             </p>
           </div>
           
-          {!isRegistering && (
-            <div className="demo-credentials">
-              <h3>Demo Credentials (for testing):</h3>
-              <div className="demo-user">
-                <strong>Student:</strong> student@university.edu / password123
-              </div>
-              <div className="demo-user">
-                <strong>Verifier:</strong> verifier@company.com / password123
-              </div>
-              <div className="demo-user">
-                <strong>Institution:</strong> admin@university.edu / password123
-              </div>
-              <div className="demo-user">
-                <strong>Admin:</strong> admin@veritasai.com / password123
-              </div>
+          <div className="demo-credentials">
+            <h3>Quick Login (any email/password works):</h3>
+            <div className="demo-user">
+              <strong>Example:</strong> test@example.com / password123
             </div>
-          )}
+          </div>
         </div>
       </div>
     </div>
