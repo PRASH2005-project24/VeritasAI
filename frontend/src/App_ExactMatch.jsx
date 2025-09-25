@@ -1,5 +1,5 @@
 import React, { useState, useRef, createContext, useContext } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, Link, useParams } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, Link, useParams, useNavigate } from 'react-router-dom';
 import apiService from './services/api.js';
 import { useLanguage, LanguageProvider } from './contexts/LanguageContext.jsx';
 import LanguageSwitcher from './components/LanguageSwitcher.jsx';
@@ -127,6 +127,7 @@ const useAuth = () => {
 const Navbar = () => {
   const { user, isAuthenticated, logout } = useAuth();
   const { t } = useLanguage();
+  const navigate = useNavigate();
   
   return (
     <nav className="navbar">
@@ -159,7 +160,7 @@ const Navbar = () => {
               <span className="user-welcome">Welcome, {user?.name || user?.email}</span>
               <button className="logout-btn" onClick={() => {
                 logout();
-                window.location.href = '/';
+                navigate('/');
               }}>
                 🚪 {t('logout')}
               </button>
@@ -915,7 +916,7 @@ const VerifierPage = () => {
                   </button>
                 </div>
               </div>
-            }
+            )}
 
             {/* Bulk Upload Method */}
             {verificationMethod === 'bulk' && (
@@ -2158,34 +2159,74 @@ function AppContent() {
             <Route path="/contact" element={<ContactPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
-            <Route path="*" element={
-              <div className="page-content">
-                <div className="container">
-                  <div className="error-boundary">
-                    <h1>🔍 Page Not Found</h1>
-                    <div className="error-details">
-                      <p>The page you're looking for doesn't exist.</p>
-                      <button 
-                        className="btn-primary"
-                        onClick={() => window.location.href = '/'}
-                      >
-                        🏠 Go to Home
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            } />
+            <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </main>
       </Router>
     </div>
   );
-}
+);
+
+// MCP Agent Page Component (placeholder)
+const MCPAgentPage = () => {
+  return (
+    <div className="page-content">
+      <div className="container">
+        <h1>AI Agent Portal</h1>
+        <p>Intelligent certificate processing and verification assistance.</p>
+        <div className="role-grid">
+          <div className="role-card">
+            <h2>AI Assistant</h2>
+            <p>Get help with certificate verification and management tasks.</p>
+            <div className="ai-features">
+              <div className="feature-item">
+                <h3>🤖 Smart Analysis</h3>
+                <p>AI-powered certificate authenticity analysis</p>
+              </div>
+              <div className="feature-item">
+                <h3>📊 Pattern Recognition</h3>
+                <p>Detect fraudulent certificates using machine learning</p>
+              </div>
+              <div className="feature-item">
+                <h3>💬 Chat Support</h3>
+                <p>Ask questions about certificate verification process</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Not Found Page Component
+const NotFoundPage = () => {
+  const navigate = useNavigate();
+  
+  return (
+    <div className="page-content">
+      <div className="container">
+        <div className="error-boundary">
+          <h1>🔍 Page Not Found</h1>
+          <div className="error-details">
+            <p>The page you're looking for doesn't exist.</p>
+            <button 
+              className="btn-primary"
+              onClick={() => navigate('/')}
+            >
+              🏠 Go to Home
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 // Certificate Verify Page (for QR code links)
 const CertificateVerifyPage = () => {
   const { certificateId } = useParams();
+  const navigate = useNavigate();
   const [verificationResult, setVerificationResult] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -2279,7 +2320,7 @@ const CertificateVerifyPage = () => {
                   <div className="verification-actions">
                     <button 
                       className="btn-primary"
-                      onClick={() => window.location.href = '/'}
+                      onClick={() => navigate('/')}
                     >
                       🏠 Go to Home
                     </button>
@@ -2295,7 +2336,7 @@ const CertificateVerifyPage = () => {
                   <div className="verification-actions">
                     <button 
                       className="btn-primary"
-                      onClick={() => window.location.href = '/'}
+                      onClick={() => navigate('/')}
                     >
                       🏠 Go to Home
                     </button>
