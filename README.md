@@ -238,7 +238,7 @@ The system includes 10 sample certificates from prestigious institutions like MI
 
 ### Live Demo
 - **🌐 Frontend**: [Visit VeritasAI Live](https://prash2005-project24.github.io/VeritasAI/) - *Deployed on GitHub Pages*
-- **🔧 Backend API**: [Health Check](https://veritasai-backend.onrender.com/health) - *Deployed on Render*
+- **🔧 Backend API**: [Health Check](https://project-u5k3s-p9zaoezd3-binarybits-projects.vercel.app/health) - *Deployed on Vercel*
 - **📊 Local Development**: [localhost:5173](http://localhost:5173) & [localhost:3001](http://localhost:3001/health)
 
 ### Demo Credentials

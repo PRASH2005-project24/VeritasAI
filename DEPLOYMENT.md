@@ -5,7 +5,7 @@ This guide explains how to deploy VeritasAI to production for public access.
 ## 🌐 Live Deployment
 
 - **Frontend**: [https://prash2005-project24.github.io/VeritasAI/](https://prash2005-project24.github.io/VeritasAI/)
-- **Backend**: [https://veritasai-backend.onrender.com](https://veritasai-backend.onrender.com)
+- **Backend**: [https://project-u5k3s-p9zaoezd3-binarybits-projects.vercel.app](https://project-u5k3s-p9zaoezd3-binarybits-projects.vercel.app)
 
 ## 📋 Deployment Architecture
 
