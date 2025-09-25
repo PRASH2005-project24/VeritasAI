@@ -2165,39 +2165,7 @@ function AppContent() {
       </Router>
     </div>
   );
-);
-
-// MCP Agent Page Component (placeholder)
-const MCPAgentPage = () => {
-  return (
-    <div className="page-content">
-      <div className="container">
-        <h1>AI Agent Portal</h1>
-        <p>Intelligent certificate processing and verification assistance.</p>
-        <div className="role-grid">
-          <div className="role-card">
-            <h2>AI Assistant</h2>
-            <p>Get help with certificate verification and management tasks.</p>
-            <div className="ai-features">
-              <div className="feature-item">
-                <h3>🤖 Smart Analysis</h3>
-                <p>AI-powered certificate authenticity analysis</p>
-              </div>
-              <div className="feature-item">
-                <h3>📊 Pattern Recognition</h3>
-                <p>Detect fraudulent certificates using machine learning</p>
-              </div>
-              <div className="feature-item">
-                <h3>💬 Chat Support</h3>
-                <p>Ask questions about certificate verification process</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
+}
 
 // Not Found Page Component
 const NotFoundPage = () => {
