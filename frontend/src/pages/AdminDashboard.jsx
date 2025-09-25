@@ -113,7 +113,7 @@ const AdminDashboard = () => {
                   <td className="py-3 px-4">
                     <span className="px-2 py-1 bg-green-600 rounded-full text-xs">Valid</span>
                   </td>
-                  <td className="py-3 px-4">2024-01-15</td>
+                  <td className="py-3 px-4">2025-01-15</td>
                 </tr>
                 <tr className="border-b border-white/10">
                   <td className="py-3 px-4 text-blue-400">CERT_002</td>
@@ -122,7 +122,7 @@ const AdminDashboard = () => {
                   <td className="py-3 px-4">
                     <span className="px-2 py-1 bg-green-600 rounded-full text-xs">Valid</span>
                   </td>
-                  <td className="py-3 px-4">2024-01-16</td>
+                  <td className="py-3 px-4">2025-01-16</td>
                 </tr>
                 <tr>
                   <td className="py-3 px-4 text-blue-400">CERT_003</td>
@@ -131,7 +131,7 @@ const AdminDashboard = () => {
                   <td className="py-3 px-4">
                     <span className="px-2 py-1 bg-green-600 rounded-full text-xs">Valid</span>
                   </td>
-                  <td className="py-3 px-4">2024-01-17</td>
+                  <td className="py-3 px-4">2025-01-17</td>
                 </tr>
               </tbody>
             </table>

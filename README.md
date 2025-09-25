@@ -4,7 +4,7 @@
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D16.0.0-brightgreen.svg)](https://nodejs.org/)
 [![React Version](https://img.shields.io/badge/react-%3E%3D18.0.0-blue.svg)](https://reactjs.org/)
 
-🚀 **Smart India Hackathon 2024 MVP** - A blockchain-powered certificate verification system with AI-driven OCR processing that ensures document authenticity and prevents fraud.
+🚀 **Smart India Hackathon 2025 MVP** - A blockchain-powered certificate verification system with AI-driven OCR processing that ensures document authenticity and prevents fraud.
 
 ## 🎯 Project Overview
 
@@ -275,7 +275,7 @@ Give a ⭐️ if this project helped you!
 
 ---
 
-**Built for Smart India Hackathon 2024** 🇮🇳
+**Built for Smart India Hackathon 2025** 🇮🇳
 
 **Team: VeritasAI** | **Status: Core MVP Complete - Ready for Phase 2 Development**
 
