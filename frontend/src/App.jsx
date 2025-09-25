@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import Navbar from './components/Navbar';
 import LandingPage from './pages/LandingPage';
@@ -19,7 +19,7 @@ function App() {
 
   return (
     <div className={`min-h-screen ${darkMode ? 'dark' : ''}`}>
-      <Router basename={'/VeritasAI'}>
+      <Router>
         <div className="gradient-bg min-h-screen">
           <Navbar darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
           
