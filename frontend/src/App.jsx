@@ -19,7 +19,7 @@ function App() {
 
   return (
     <div className={`min-h-screen ${darkMode ? 'dark' : ''}`}>
-      <Router>
+      <Router basename={import.meta.env.MODE === 'production' ? '/VeritasAI' : '/'}>
         <div className="gradient-bg min-h-screen">
           <Navbar darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
           
