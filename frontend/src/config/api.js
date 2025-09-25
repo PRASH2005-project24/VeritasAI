@@ -6,9 +6,10 @@ const isProduction = import.meta.env.MODE === 'production';
 // Backend API URLs for different environments
 const API_BASE_URLS = {
   development: 'http://localhost:3001',
-  production: 'https://project-u5k3s-p9zaoezd3-binarybits-projects.vercel.app', // Deployed backend URL
-  // Fallback for GitHub Pages (if backend deployment fails)
-  fallback: 'https://veritasai-backend-demo.vercel.app'
+  production: 'https://veritasai-backend.onrender.com', // Render deployment
+  // Alternative backends for high availability
+  fallback: 'https://project-u5k3s-13yrpkt5q-binarybits-projects.vercel.app',
+  mock: 'https://jsonplaceholder.typicode.com' // For demo purposes
 };
 
 // Auto-detect environment and set API URL

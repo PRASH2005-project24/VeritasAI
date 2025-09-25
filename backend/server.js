@@ -539,16 +539,8 @@ app.post('/api/bulk-verify', upload.single('csvFile'), async (req, res) => {
   }
 });
 
-// Start server
-const startServer = async () => {
-  await loadMockData();
-  
-  app.listen(PORT, () => {
-    console.log(`🚀 VeritasAI Backend Server running on port ${PORT}`);
-    console.log(`📊 Health check: http://localhost:${PORT}/health`);
-    console.log(`💾 Mock database loaded with ${certificatesDB.length} certificates`);
-  });
-};
+// Initialize data on startup
+loadMockData().catch(console.error);
 
 // Error handling middleware
 app.use((error, req, res, next) => {
@@ -568,6 +560,13 @@ app.use((req, res) => {
   res.status(404).json({ error: 'Endpoint not found' });
 });
 
-startServer().catch(console.error);
+// For local development
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`🚀 VeritasAI Backend Server running on port ${PORT}`);
+    console.log(`📊 Health check: http://localhost:${PORT}/health`);
+    console.log(`💾 Mock database loaded with ${certificatesDB.length} certificates`);
+  });
+}
 
 module.exports = app;
