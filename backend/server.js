@@ -239,9 +239,18 @@ const parseCertificateText = (text) => {
 
 // API Routes
 
-// Health check
+// Health check - allow all origins for this endpoint
 app.get('/health', (req, res) => {
-  res.json({ status: 'OK', timestamp: new Date().toISOString() });
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.json({ 
+    status: 'OK', 
+    message: 'VeritasAI Backend is running',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development',
+    certificatesCount: certificatesDB.length
+  });
 });
 
 // Upload certificate (Institution role)
