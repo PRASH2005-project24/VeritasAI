@@ -132,6 +132,58 @@ export const apiService = {
   // Get file URL (for images, QR codes, etc.)
   getFileUrl(relativePath) {
     return `${BASE_URL}${relativePath}`;
+  },
+
+  // User authentication
+  async login(credentials) {
+    try {
+      const response = await api.post('/api/login', credentials);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  async register(userData) {
+    try {
+      const response = await api.post('/api/register', userData);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Admin: Get invalid certificates
+  async getInvalidCertificates() {
+    try {
+      const response = await api.get('/api/admin/certificates/invalid');
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Admin: Get certificate details by ID
+  async getCertificateById(certificateId) {
+    try {
+      const response = await api.get(`/api/admin/certificates/${certificateId}`);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Admin: Update certificate status
+  async updateCertificateStatus(certificateId, status, reason) {
+    try {
+      const response = await api.put(`/api/admin/certificates/${certificateId}/status`, {
+        status,
+        reason
+      });
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
   }
 };
 
@@ -144,7 +196,12 @@ export const {
   getAllCertificates,
   getAnalytics,
   bulkVerification,
-  getFileUrl
+  getFileUrl,
+  login,
+  register,
+  getInvalidCertificates,
+  getCertificateById,
+  updateCertificateStatus
 } = apiService;
 
 export default apiService;

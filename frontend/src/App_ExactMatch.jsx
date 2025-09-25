@@ -1,6 +1,8 @@
 import React, { useState, useRef, createContext, useContext } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, Link, useParams } from 'react-router-dom';
 import apiService from './services/api.js';
+import { useLanguage, LanguageProvider } from './contexts/LanguageContext.jsx';
+import LanguageSwitcher from './components/LanguageSwitcher.jsx';
 import './App_ExactMatch.css';
 
 // Error Boundary Component
@@ -74,37 +76,40 @@ const AuthContext = createContext();
 
 const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  const login = (userData) => {
-    setUser(userData);
-    setIsAuthenticated(true);
-    localStorage.setItem('veritasai_user', JSON.stringify(userData));
-  };
-
-  const logout = () => {
-    setUser(null);
-    setIsAuthenticated(false);
-    localStorage.removeItem('veritasai_user');
-  };
-
+  // Load user from localStorage on app start
   React.useEffect(() => {
     try {
       const savedUser = localStorage.getItem('veritasai_user');
       if (savedUser) {
         const userData = JSON.parse(savedUser);
         setUser(userData);
-        setIsAuthenticated(true);
       }
     } catch (error) {
       console.error('Error loading user from localStorage:', error);
-      // Clear corrupted data
       localStorage.removeItem('veritasai_user');
     }
   }, []);
 
+  // Simple login function
+  const login = (userData) => {
+    setUser(userData);
+    localStorage.setItem('veritasai_user', JSON.stringify(userData));
+  };
+
+  // Logout function
+  const logout = () => {
+    setUser(null);
+    localStorage.removeItem('veritasai_user');
+  };
+
+  // Check if user is authenticated
+  const isAuthenticated = () => {
+    return !!user;
+  };
+
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated, login, logout }}>
+    <AuthContext.Provider value={{ user, login, logout, isAuthenticated }}>
       {children}
     </AuthContext.Provider>
   );
@@ -121,6 +126,7 @@ const useAuth = () => {
 // Navigation Component
 const Navbar = () => {
   const { user, isAuthenticated, logout } = useAuth();
+  const { t } = useLanguage();
   
   return (
     <nav className="navbar">
@@ -129,37 +135,40 @@ const Navbar = () => {
           VeritasAI
         </Link>
         <div className="nav-links">
-          <Link to="/" className="nav-link">Home</Link>
+          <Link to="/" className="nav-link">{t('home')}</Link>
           {isAuthenticated && (
             <>
-              {/* Show Student link for students and admins */}
               {(user?.role === 'student' || user?.role === 'admin') && (
-                <Link to="/student" className="nav-link">Student</Link>
+                <Link to="/student" className="nav-link">{t('student')}</Link>
               )}
-              {/* Show Verifier link for verifiers and admins */}
               {(user?.role === 'verifier' || user?.role === 'admin') && (
-                <Link to="/verifier" className="nav-link">Verifier</Link>
+                <Link to="/verifier" className="nav-link">{t('verifier')}</Link>
               )}
-              {/* Show Institution link for institutions and admins */}
               {(user?.role === 'institution' || user?.role === 'admin') && (
-                <Link to="/institution" className="nav-link">Institution</Link>
+                <Link to="/institution" className="nav-link">{t('institution')}</Link>
               )}
-              {/* Admin link only for admins */}
               {user?.role === 'admin' && (
-                <Link to="/admin" className="nav-link">Admin</Link>
+                <Link to="/admin" className="nav-link">{t('admin')}</Link>
               )}
-              <Link to="/agent" className="nav-link">MCP Agent</Link>
+              <Link to="/agent" className="nav-link">{t('agent')}</Link>
             </>
           )}
+          <LanguageSwitcher />
           {isAuthenticated ? (
             <div className="user-menu">
               <span className="user-welcome">Welcome, {user?.name || user?.email}</span>
-              <button className="logout-btn" onClick={logout}>
-                🚪 Logout
+              <button className="logout-btn" onClick={() => {
+                logout();
+                window.location.href = '/';
+              }}>
+                🚪 {t('logout')}
               </button>
             </div>
           ) : (
-            <Link to="/login" className="login-btn">Login</Link>
+            <div className="auth-buttons">
+              <Link to="/login" className="login-btn">{t('login')}</Link>
+              <Link to="/register" className="register-btn">📝 Register</Link>
+            </div>
           )}
         </div>
       </div>
@@ -169,6 +178,7 @@ const Navbar = () => {
 
 // Main Hero Section
 const HeroSection = () => {
+  const { t } = useLanguage();
   const [uploadFile, setUploadFile] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
   const [verificationResult, setVerificationResult] = useState(null);
@@ -253,12 +263,12 @@ const HeroSection = () => {
       <div className="hero-container">
         <div className="hero-content">
           <h1 className="hero-title">
-            Trusted<br />
-            Certificate<br />
-            Validation
+            {t('landingTitle')}<br />
+            {t('landingSubtitle')}<br />
+            {t('landingAction')}
           </h1>
           <p className="hero-subtitle">
-            Fight fake degrees with blockchain + AI
+            {t('landingDescription')}
           </p>
           
           <div className="hero-buttons">
@@ -267,14 +277,14 @@ const HeroSection = () => {
               onClick={() => handleFileSelect('upload')}
               disabled={isUploading}
             >
-              {isUploading && uploadMode === 'upload' ? 'Uploading...' : 'Upload Certificate'}
+              {isUploading && uploadMode === 'upload' ? t('uploading') : t('uploadCertificate')}
             </button>
             <button 
               className="btn-verify"
               onClick={() => handleFileSelect('verify')}
               disabled={isUploading}
             >
-              {isUploading && uploadMode === 'verify' ? 'Verifying...' : 'Verify Certificate'}
+              {isUploading && uploadMode === 'verify' ? t('verifying') : t('verifyNow')}
             </button>
           </div>
 
@@ -522,15 +532,34 @@ const StudentPage = () => {
         <div className="role-grid">
           <div className="role-card">
             <h2>Certificate Verification</h2>
-            <p>Upload your certificate to verify its authenticity and get instant results.</p>
+            <p>Upload your certificate or enter certificate ID to verify its authenticity.</p>
             
-            <button 
-              className="btn-upload"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={isVerifying}
-            >
-              {isVerifying ? 'Verifying...' : 'Select Certificate to Verify'}
-            </button>
+            <div className="verification-buttons">
+              <button 
+                className="btn-upload"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isVerifying}
+              >
+                {isVerifying ? 'Verifying...' : '📄 Upload Certificate'}
+              </button>
+              
+              <div className="qr-id-verification">
+                <input 
+                  type="text" 
+                  placeholder="Enter Certificate ID" 
+                  className="cert-id-input"
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter' && e.target.value.trim()) {
+                      // Simulate QR verification by ID
+                      alert(`Verifying certificate: ${e.target.value}`);
+                    }
+                  }}
+                />
+                <button className="btn-secondary" style={{marginLeft: '10px'}}>
+                  📱 Scan QR
+                </button>
+              </div>
+            </div>
 
             <input
               type="file"
@@ -800,6 +829,12 @@ const VerifierPage = () => {
               >
                 🔢 Enter ID
               </button>
+              <button 
+                className={`method-btn ${verificationMethod === 'bulk' ? 'active' : ''}`}
+                onClick={() => setVerificationMethod('bulk')}
+              >
+                📁 Bulk Upload
+              </button>
             </div>
 
             {/* Upload Method */}
@@ -879,6 +914,26 @@ const VerifierPage = () => {
                     {isVerifying ? 'Verifying...' : '🔍 Verify by ID'}
                   </button>
                 </div>
+              </div>
+            }
+
+            {/* Bulk Upload Method */}
+            {verificationMethod === 'bulk' && (
+              <div className="verification-method-content">
+                <p>Upload multiple certificates at once for bulk verification.</p>
+                <input
+                  type="file"
+                  multiple
+                  accept=".pdf,.jpg,.jpeg,.png"
+                  onChange={(e) => {
+                    const files = Array.from(e.target.files);
+                    if (files.length > 0) {
+                      alert(`Selected ${files.length} files for bulk verification. This is a demo - individual processing would happen here.`);
+                    }
+                  }}
+                  style={{ marginBottom: '10px' }}
+                />
+                <p><em>MVP Feature: Select multiple files for batch processing</em></p>
               </div>
             )}
 
@@ -1120,11 +1175,17 @@ const InstitutionPage = () => {
 };
 
 const AdminPage = () => {
+  const { t } = useLanguage();
   const [analytics, setAnalytics] = useState(null);
   const [certificates, setCertificates] = useState([]);
+  const [invalidCertificates, setInvalidCertificates] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedCertificate, setSelectedCertificate] = useState(null);
   const [showCertificateModal, setShowCertificateModal] = useState(false);
+  const [showInvalidModal, setShowInvalidModal] = useState(false);
+  const [activeTab, setActiveTab] = useState('all');
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const [statusUpdateReason, setStatusUpdateReason] = useState('');
 
   const loadAnalytics = async () => {
     setIsLoading(true);
@@ -1146,41 +1207,143 @@ const AdminPage = () => {
     }
   };
 
+  const loadInvalidCertificates = async () => {
+    try {
+      const response = await apiService.getInvalidCertificates();
+      setInvalidCertificates(response.certificates || []);
+    } catch (error) {
+      console.error('Failed to load invalid certificates:', error);
+    }
+  };
+
+  const handleStatusUpdate = async (certificateId, newStatus, reason = '') => {
+    if (!reason.trim() && newStatus === 'invalid') {
+      alert('Please provide a reason for marking certificate as invalid');
+      return;
+    }
+
+    setIsUpdatingStatus(true);
+    try {
+      await apiService.updateCertificateStatus(certificateId, newStatus, reason);
+      
+      // Reload data
+      await Promise.all([
+        loadAnalytics(),
+        loadCertificates(),
+        loadInvalidCertificates()
+      ]);
+      
+      // Update selected certificate if it's the one being updated
+      if (selectedCertificate?.id === certificateId) {
+        const updatedCert = await apiService.getCertificateById(certificateId);
+        setSelectedCertificate(updatedCert.certificate);
+      }
+      
+      setStatusUpdateReason('');
+      alert(`Certificate status updated to ${newStatus} successfully!`);
+    } catch (error) {
+      console.error('Failed to update certificate status:', error);
+      alert(`Failed to update certificate status: ${error.message}`);
+    } finally {
+      setIsUpdatingStatus(false);
+    }
+  };
+
   React.useEffect(() => {
     loadAnalytics();
     loadCertificates();
+    loadInvalidCertificates();
   }, []);
+
+  // Filter certificates based on active tab
+  const getFilteredCertificates = () => {
+    switch (activeTab) {
+      case 'valid':
+        return certificates.filter(cert => cert.status === 'valid');
+      case 'invalid':
+        return certificates.filter(cert => cert.status === 'invalid');
+      case 'pending':
+        return certificates.filter(cert => cert.status === 'pending');
+      default:
+        return certificates;
+    }
+  };
 
   return (
     <div className="page-content">
       <div className="container">
-        <h1>Admin Dashboard</h1>
-        <p>Monitor certificate verification activities and system analytics.</p>
+        <div className="admin-header">
+          <h1>{t('adminDashboard')}</h1>
+          <p>Monitor certificate verification activities and system analytics.</p>
+        </div>
         
         {isLoading ? (
           <div className="loading-container">
             <div className="loading-spinner"></div>
-            <p>Loading dashboard...</p>
+            <p>{t('loading')}</p>
           </div>
         ) : (
           <>
             {analytics && (
               <div className="analytics-grid">
-                <div className="analytics-card">
-                  <h3>Total Certificates</h3>
-                  <div className="analytics-number">{analytics.totalCertificates}</div>
+                <div className="analytics-card total">
+                  <div className="analytics-icon">📊</div>
+                  <div className="analytics-info">
+                    <h3>{t('totalCertificates')}</h3>
+                    <div className="analytics-number">{analytics.totalCertificates}</div>
+                  </div>
                 </div>
-                <div className="analytics-card">
-                  <h3>Valid Certificates</h3>
-                  <div className="analytics-number">{analytics.validCertificates}</div>
+                <div className="analytics-card valid">
+                  <div className="analytics-icon">✅</div>
+                  <div className="analytics-info">
+                    <h3>{t('validCertificates')}</h3>
+                    <div className="analytics-number">{analytics.validCertificates}</div>
+                  </div>
                 </div>
-                <div className="analytics-card">
-                  <h3>Fraud Attempts</h3>
-                  <div className="analytics-number">{analytics.fraudAttempts}</div>
+                <div className="analytics-card invalid">
+                  <div className="analytics-icon">❌</div>
+                  <div className="analytics-info">
+                    <h3>Invalid Certificates</h3>
+                    <div className="analytics-number">{analytics.invalidCertificates || 0}</div>
+                  </div>
                 </div>
-                <div className="analytics-card">
-                  <h3>Verification Rate</h3>
-                  <div className="analytics-number">{analytics.verificationRate}%</div>
+                <div className="analytics-card pending">
+                  <div className="analytics-icon">⏳</div>
+                  <div className="analytics-info">
+                    <h3>Pending Review</h3>
+                    <div className="analytics-number">{analytics.pendingCertificates || 0}</div>
+                  </div>
+                </div>
+                <div className="analytics-card fraud">
+                  <div className="analytics-icon">🚨</div>
+                  <div className="analytics-info">
+                    <h3>Fraud Attempts</h3>
+                    <div className="analytics-number">{analytics.fraudAttempts}</div>
+                  </div>
+                </div>
+                <div className="analytics-card rate">
+                  <div className="analytics-icon">📈</div>
+                  <div className="analytics-info">
+                    <h3>Verification Rate</h3>
+                    <div className="analytics-number">{analytics.verificationRate}%</div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Invalid Certificates Alert */}
+            {invalidCertificates.length > 0 && (
+              <div className="invalid-alert">
+                <div className="invalid-alert-icon">⚠️</div>
+                <div className="invalid-alert-content">
+                  <h3>Action Required</h3>
+                  <p>{invalidCertificates.length} certificate(s) require admin attention</p>
+                  <button 
+                    className="btn-review"
+                    onClick={() => setShowInvalidModal(true)}
+                  >
+                    Review Invalid Certificates
+                  </button>
                 </div>
               </div>
             )}
@@ -1531,43 +1694,87 @@ const ContactPage = () => (
   </div>
 );
 
-const LoginPage = () => {
+// Register Page Component
+const RegisterPage = () => {
   const { login, isAuthenticated } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [selectedRole, setSelectedRole] = useState('student');
-  const [isLogging, setIsLogging] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  if (isAuthenticated) {
+  if (isAuthenticated()) {
     return <Navigate to="/" replace />;
   }
 
-  const handleSubmit = async (e) => {
+  const handleRegister = (e) => {
     e.preventDefault();
-    setIsLogging(true);
+    setError('');
 
-    // Demo authentication - in production, this would be an API call
-    setTimeout(() => {
+    if (!name.trim()) {
+      setError('Name is required');
+      return;
+    }
+    if (!email || !password) {
+      setError('Email and password are required');
+      return;
+    }
+    if (password.length < 3) {
+      setError('Password must be at least 3 characters');
+      return;
+    }
+    if (password !== confirmPassword) {
+      setError('Passwords do not match');
+      return;
+    }
+
+    setIsLoading(true);
+    
+    try {
       const userData = {
-        email,
-        name: email.split('@')[0],
-        role: selectedRole,
-        loginTime: new Date().toISOString()
+        id: Date.now(),
+        name: name.trim(),
+        email: email.trim(),
+        role: selectedRole
       };
-      
       login(userData);
-      setIsLogging(false);
-    }, 1500);
+    } catch (error) {
+      setError('Registration failed. Please try again.');
+    }
+    
+    setIsLoading(false);
   };
 
   return (
     <div className="page-content">
       <div className="container">
         <div className="login-container">
-          <h1>Login to VeritasAI</h1>
-          <p className="login-subtitle">Secure certificate verification platform</p>
+          <h1>Join VeritasAI</h1>
+          <p className="login-subtitle">
+            Create your secure certificate verification account
+          </p>
           
-          <form className="login-form" onSubmit={handleSubmit}>
+          {error && (
+            <div className="error-message">
+              <span className="error-icon">⚠️</span>
+              {error}
+            </div>
+          )}
+          
+          <form className="login-form" onSubmit={handleRegister}>
+            <div className="form-group">
+              <label>Full Name</label>
+              <input 
+                type="text" 
+                placeholder="Enter your full name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+              />
+            </div>
+            
             <div className="form-group">
               <label>Email Address</label>
               <input 
@@ -1578,60 +1785,282 @@ const LoginPage = () => {
                 required
               />
             </div>
+            
             <div className="form-group">
               <label>Password</label>
               <input 
                 type="password" 
-                placeholder="Enter your password"
+                placeholder="Create a password (min 3 chars)"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
               />
             </div>
+            
             <div className="form-group">
-              <label>Role</label>
+              <label>Confirm Password</label>
+              <input 
+                type="password" 
+                placeholder="Re-enter your password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+              />
+            </div>
+            
+            <div className="form-group">
+              <label>Account Type</label>
               <select 
                 value={selectedRole} 
                 onChange={(e) => setSelectedRole(e.target.value)}
                 className="role-select"
               >
-                <option value="student">Student</option>
-                <option value="verifier">Verifier</option>
-                <option value="institution">Institution</option>
-                <option value="admin">Administrator</option>
+                <option value="student">🎓 Student</option>
+                <option value="verifier">🔍 Verifier/Employer</option>
+                <option value="institution">🏛️ Institution</option>
               </select>
             </div>
+            
             <button 
               type="submit" 
               className="login-submit"
-              disabled={isLogging || !email || !password}
+              disabled={isLoading || !email || !password || !name}
             >
-              {isLogging ? (
+              {isLoading ? (
                 <>
                   <div className="login-spinner"></div>
-                  Signing In...
+                  Creating Account...
                 </>
               ) : (
-                'Sign In'
+                'Create Account'
               )}
             </button>
           </form>
           
-          <div className="demo-credentials">
-            <h3>Demo Credentials:</h3>
-            <div className="demo-user">
-              <strong>Student:</strong> student@university.edu / password123
-            </div>
-            <div className="demo-user">
-              <strong>Verifier:</strong> verifier@company.com / password123
-            </div>
-            <div className="demo-user">
-              <strong>Institution:</strong> admin@university.edu / password123
-            </div>
-            <div className="demo-user">
-              <strong>Admin:</strong> admin@veritasai.com / password123
-            </div>
+          <div className="auth-switch">
+            <p>
+              Already have an account?
+              <Link to="/login" className="auth-switch-btn">
+                Sign In
+              </Link>
+            </p>
           </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const LoginPage = () => {
+  const { login, isAuthenticated } = useAuth();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [selectedRole, setSelectedRole] = useState('student');
+  const [isLoading, setIsLoading] = useState(false);
+  const [isRegistering, setIsRegistering] = useState(false);
+  const [error, setError] = useState('');
+
+  if (isAuthenticated()) {
+    return <Navigate to="/" replace />;
+  }
+
+  const handleLogin = (e) => {
+    e.preventDefault();
+    setError('');
+    
+    if (!email || !password) {
+      setError('Please enter email and password');
+      return;
+    }
+
+    setIsLoading(true);
+    
+    try {
+      const userData = {
+        id: Date.now(),
+        name: email.split('@')[0],
+        email: email,
+        role: selectedRole
+      };
+      login(userData);
+    } catch (error) {
+      setError('Login failed. Please try again.');
+    }
+    
+    setIsLoading(false);
+  };
+
+  const handleRegister = async (e) => {
+    e.preventDefault();
+    setError('');
+
+    // Simple validation
+    if (!name.trim()) {
+      setError('Name is required');
+      return;
+    }
+    if (password.length < 3) {
+      setError('Password must be at least 3 characters');
+      return;
+    }
+    if (password !== confirmPassword) {
+      setError('Passwords do not match');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const userData = {
+        id: Date.now(),
+        name: name.trim(),
+        email: email.trim(),
+        role: selectedRole
+      };
+      login(userData);
+    } catch (error) {
+      setError('Registration failed. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className="page-content">
+      <div className="container">
+        <div className="login-container">
+          <h1>{isRegistering ? 'Join VeritasAI' : 'Login to VeritasAI'}</h1>
+          <p className="login-subtitle">
+            {isRegistering ? 'Create your secure certificate verification account' : 'Secure certificate verification platform'}
+          </p>
+          
+          {error && (
+            <div className="error-message">
+              <span className="error-icon">⚠️</span>
+              {error}
+            </div>
+          )}
+          
+          <form className="login-form" onSubmit={isRegistering ? handleRegister : handleLogin}>
+            {isRegistering && (
+              <div className="form-group">
+                <label>Full Name</label>
+                <input 
+                  type="text" 
+                  placeholder="Enter your full name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
+                />
+              </div>
+            )}
+            
+            <div className="form-group">
+              <label>Email Address</label>
+              <input 
+                type="email" 
+                placeholder="Enter your email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </div>
+            
+            <div className="form-group">
+              <label>Password</label>
+              <input 
+                type="password" 
+                placeholder={isRegistering ? "Create a password (min 6 chars)" : "Enter your password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+            </div>
+            
+            {isRegistering && (
+              <div className="form-group">
+                <label>Confirm Password</label>
+                <input 
+                  type="password" 
+                  placeholder="Re-enter your password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
+                />
+              </div>
+            )}
+            
+            {(isRegistering || !isRegistering) && (
+              <div className="form-group">
+                <label>Account Type</label>
+                <select 
+                  value={selectedRole} 
+                  onChange={(e) => setSelectedRole(e.target.value)}
+                  className="role-select"
+                >
+                  <option value="student">🎓 Student</option>
+                  <option value="verifier">🔍 Verifier/Employer</option>
+                  <option value="institution">🏛️ Institution</option>
+                  {!isRegistering && <option value="admin">👑 Administrator</option>}
+                </select>
+              </div>
+            )}
+            
+            
+            <button 
+              type="submit" 
+              className="login-submit"
+              disabled={isLoading || !email || !password}
+            >
+              {isLoading ? (
+                <>
+                  <div className="login-spinner"></div>
+                  {isRegistering ? 'Creating Account...' : 'Signing In...'}
+                </>
+              ) : (
+                isRegistering ? 'Create Account' : 'Sign In'
+              )}
+            </button>
+          </form>
+          
+          <div className="auth-switch">
+            <p>
+              {isRegistering ? 'Already have an account?' : "Don't have an account?"}
+              <button 
+                className="auth-switch-btn"
+                onClick={() => {
+                  setIsRegistering(!isRegistering);
+                  setError('');
+                  setEmail('');
+                  setPassword('');
+                  setName('');
+                  setConfirmPassword('');
+                }}
+                disabled={isLoading}
+              >
+                {isRegistering ? 'Sign In' : 'Sign Up'}
+              </button>
+            </p>
+          </div>
+          
+          {!isRegistering && (
+            <div className="demo-credentials">
+              <h3>Demo Credentials (for testing):</h3>
+              <div className="demo-user">
+                <strong>Student:</strong> student@university.edu / password123
+              </div>
+              <div className="demo-user">
+                <strong>Verifier:</strong> verifier@company.com / password123
+              </div>
+              <div className="demo-user">
+                <strong>Institution:</strong> admin@university.edu / password123
+              </div>
+              <div className="demo-user">
+                <strong>Admin:</strong> admin@veritasai.com / password123
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -1728,6 +2157,7 @@ function AppContent() {
             <Route path="/about" element={<AboutPage />} />
             <Route path="/contact" element={<ContactPage />} />
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/register" element={<RegisterPage />} />
             <Route path="*" element={
               <div className="page-content">
                 <div className="container">
@@ -1883,11 +2313,13 @@ const CertificateVerifyPage = () => {
 function App() {
   return (
     <ErrorBoundary>
-      <AuthProvider>
-        <ErrorBoundary>
-          <AppContent />
-        </ErrorBoundary>
-      </AuthProvider>
+      <LanguageProvider>
+        <AuthProvider>
+          <ErrorBoundary>
+            <AppContent />
+          </ErrorBoundary>
+        </AuthProvider>
+      </LanguageProvider>
     </ErrorBoundary>
   );
 }

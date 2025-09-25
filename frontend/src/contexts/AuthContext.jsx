@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import apiService from '../services/api.js';
 
 const AuthContext = createContext();
 
@@ -32,53 +33,55 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     setLoading(true);
     try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const response = await apiService.login({ email, password });
       
-      // Mock authentication - in real app, this would be an API call
-      const mockUser = {
-        id: Date.now(),
-        email: email,
-        name: email.split('@')[0],
-        role: getUserRole(email), // Determine role based on email
-        avatar: `https://ui-avatars.com/api/?name=${email.split('@')[0]}&background=3b82f6&color=fff`,
-        loginTime: new Date().toISOString()
-      };
-
-      setUser(mockUser);
-      localStorage.setItem('veritasai_user', JSON.stringify(mockUser));
-      setLoading(false);
-      return { success: true, user: mockUser };
+      if (response.success) {
+        const userData = {
+          ...response.user,
+          avatar: `https://ui-avatars.com/api/?name=${response.user.name}&background=3b82f6&color=fff`
+        };
+        
+        setUser(userData);
+        localStorage.setItem('veritasai_user', JSON.stringify(userData));
+        localStorage.setItem('veritasai_token', response.token);
+        
+        setLoading(false);
+        return { success: true, user: userData };
+      } else {
+        setLoading(false);
+        return { success: false, error: response.error || 'Login failed' };
+      }
     } catch (error) {
       setLoading(false);
-      return { success: false, error: 'Login failed. Please try again.' };
+      return { success: false, error: error.message || 'Login failed. Please try again.' };
     }
   };
 
-  // Signup function
-  const signup = async (userData) => {
+  // Register function
+  const register = async (userData) => {
     setLoading(true);
     try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1200));
+      const response = await apiService.register(userData);
       
-      const newUser = {
-        id: Date.now(),
-        email: userData.email,
-        name: userData.name,
-        role: userData.role,
-        institution: userData.institution || null,
-        avatar: `https://ui-avatars.com/api/?name=${userData.name}&background=8b5cf6&color=fff`,
-        signupTime: new Date().toISOString()
-      };
-
-      setUser(newUser);
-      localStorage.setItem('veritasai_user', JSON.stringify(newUser));
-      setLoading(false);
-      return { success: true, user: newUser };
+      if (response.success) {
+        const user = {
+          ...response.user,
+          avatar: `https://ui-avatars.com/api/?name=${response.user.name}&background=8b5cf6&color=fff`
+        };
+        
+        setUser(user);
+        localStorage.setItem('veritasai_user', JSON.stringify(user));
+        localStorage.setItem('veritasai_token', response.token);
+        
+        setLoading(false);
+        return { success: true, user };
+      } else {
+        setLoading(false);
+        return { success: false, error: response.error || 'Registration failed' };
+      }
     } catch (error) {
       setLoading(false);
-      return { success: false, error: 'Signup failed. Please try again.' };
+      return { success: false, error: error.message || 'Registration failed. Please try again.' };
     }
   };
 
@@ -86,6 +89,7 @@ export const AuthProvider = ({ children }) => {
   const logout = () => {
     setUser(null);
     localStorage.removeItem('veritasai_user');
+    localStorage.removeItem('veritasai_token');
   };
 
   // Helper function to determine user role based on email
@@ -113,7 +117,7 @@ export const AuthProvider = ({ children }) => {
     user,
     loading,
     login,
-    signup,
+    register,
     logout,
     hasRole,
     isAuthenticated
