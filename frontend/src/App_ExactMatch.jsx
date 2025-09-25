@@ -124,6 +124,11 @@ const Navbar = () => {
   const { t } = useLanguage();
   const navigate = useNavigate();
   
+  const handleLogout = () => {
+    logout();
+    navigate('/');
+  };
+  
   return (
     <nav className="navbar">
       <div className="nav-container">
@@ -132,7 +137,7 @@ const Navbar = () => {
         </Link>
         <div className="nav-links">
           <Link to="/" className="nav-link">{t('home')}</Link>
-          {isAuthenticated && (
+          {isAuthenticated() && (
             <>
               {(user?.role === 'student' || user?.role === 'admin') && (
                 <Link to="/student" className="nav-link">{t('student')}</Link>
@@ -150,13 +155,10 @@ const Navbar = () => {
             </>
           )}
           <LanguageSwitcher />
-          {isAuthenticated ? (
+          {isAuthenticated() ? (
             <div className="user-menu">
               <span className="user-welcome">Welcome, {user?.name || user?.email}</span>
-              <button className="logout-btn" onClick={() => {
-                logout();
-                navigate('/');
-              }}>
+              <button className="logout-btn" onClick={handleLogout}>
                 🚪 {t('logout')}
               </button>
             </div>
@@ -1923,7 +1925,7 @@ const LoginPage = () => {
 const ProtectedRoute = ({ children, requiresAdmin = false }) => {
   const { isAuthenticated, user } = useAuth();
   
-  if (!isAuthenticated) {
+  if (!isAuthenticated()) {
     return <Navigate to="/login" replace />;
   }
   
