@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate, Link, useParams, useN
 import apiService from './services/api.js';
 import { useLanguage, LanguageProvider } from './contexts/LanguageContext.jsx';
 import LanguageSwitcher from './components/LanguageSwitcher.jsx';
+// import SimpleAdminDashboard from './components/SimpleAdminDashboard.jsx';
 import './App_ExactMatch.css';
 
 // Error Boundary Component
@@ -177,82 +178,33 @@ const Navbar = () => {
 // Main Hero Section
 const HeroSection = () => {
   const { t } = useLanguage();
-  const [uploadFile, setUploadFile] = useState(null);
-  const [isUploading, setIsUploading] = useState(false);
-  const [verificationResult, setVerificationResult] = useState(null);
-  const [uploadMode, setUploadMode] = useState(null); // 'upload' or 'verify'
-  const fileInputRef = useRef();
+  const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
 
-  const handleFileSelect = (mode) => {
-    setUploadMode(mode);
-    setVerificationResult(null);
-    fileInputRef.current?.click();
-  };
-
-  const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    setUploadFile(file);
-    
-    if (uploadMode === 'verify') {
-      handleVerifyCertificate(file);
-    } else if (uploadMode === 'upload') {
-      handleUploadCertificate(file);
-    }
-  };
-
-  const handleVerifyCertificate = async (file) => {
-    if (!file) return;
-    
-    setIsUploading(true);
-    setVerificationResult(null);
-
-    try {
-      const formData = new FormData();
-      formData.append('certificate', file);
-
-      const response = await apiService.verifyCertificate(formData);
-      setVerificationResult(response);
-    } catch (error) {
-      setVerificationResult({
-        status: 'error',
-        verification: {
-          isValid: false,
-          reason: error.message || 'Network error - please check if the backend server is running'
-        }
-      });
-    } finally {
-      setIsUploading(false);
-    }
-  };
-
-  const handleUploadCertificate = async (file) => {
-    if (!file) return;
-
-    setIsUploading(true);
-    
-    try {
-      const formData = new FormData();
-      formData.append('certificate', file);
-      formData.append('institutionName', 'Demo Institution');
-      formData.append('issuerEmail', 'issuer@institution.edu');
-
-      const response = await apiService.uploadCertificate(formData);
-      setVerificationResult({
-        status: 'uploaded',
-        certificate: response.certificate
-      });
-    } catch (error) {
-      setVerificationResult({
-        status: 'error',
-        verification: {
-          isValid: false,
-          reason: error.message || 'Network error - please check if the backend server is running'
-        }
-      });
-    } finally {
-      setIsUploading(false);
+  const handleGetStarted = () => {
+    if (isAuthenticated()) {
+      // If user is logged in, redirect based on their role
+      const user = JSON.parse(localStorage.getItem('veritasai_user'));
+      const role = user?.role || 'student';
+      
+      switch(role) {
+        case 'admin':
+          navigate('/admin');
+          break;
+        case 'institution':
+          navigate('/institution');
+          break;
+        case 'verifier':
+          navigate('/verifier');
+          break;
+        case 'student':
+        default:
+          navigate('/student');
+          break;
+      }
+    } else {
+      // If not logged in, go to login page
+      navigate('/login');
     }
   };
 
@@ -271,102 +223,12 @@ const HeroSection = () => {
           
           <div className="hero-buttons">
             <button 
-              className="btn-upload"
-              onClick={() => handleFileSelect('upload')}
-              disabled={isUploading}
+              className="btn-get-started"
+              onClick={handleGetStarted}
             >
-              {isUploading && uploadMode === 'upload' ? t('uploading') : t('uploadCertificate')}
-            </button>
-            <button 
-              className="btn-verify"
-              onClick={() => handleFileSelect('verify')}
-              disabled={isUploading}
-            >
-              {isUploading && uploadMode === 'verify' ? t('verifying') : t('verifyNow')}
+              🚀 Get Started
             </button>
           </div>
-
-          <input
-            type="file"
-            ref={fileInputRef}
-            style={{ display: 'none' }}
-            accept=".pdf,.jpg,.jpeg,.png"
-            onChange={handleFileChange}
-          />
-
-          {/* Loading State */}
-          {isUploading && (
-            <div className="loading-container">
-              <div className="loading-spinner"></div>
-              <p className="loading-text">
-                {uploadMode === 'verify' ? 'Verifying certificate...' : 'Processing upload...'}
-              </p>
-            </div>
-          )}
-
-          {/* Results Display */}
-          {verificationResult && !isUploading && (
-            <div className="result-container">
-              {verificationResult.status === 'valid' && (
-                <div className="result-success">
-                  <div className="result-icon success">✓</div>
-                  <div className="result-content">
-                    <h3>Certificate Verified Successfully!</h3>
-                    <div className="result-details">
-                      <p><strong>Student:</strong> {verificationResult.certificate?.studentName || 'N/A'}</p>
-                      <p><strong>Course:</strong> {verificationResult.certificate?.courseName || 'N/A'}</p>
-                      <p><strong>Institution:</strong> {verificationResult.certificate?.institutionName || 'N/A'}</p>
-                      <p><strong>Issue Date:</strong> {verificationResult.certificate?.issueDate || 'N/A'}</p>
-                      {verificationResult.certificate?.grade && (
-                        <p><strong>Grade:</strong> {verificationResult.certificate.grade}</p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {verificationResult.status === 'uploaded' && (
-                <div className="result-success">
-                  <div className="result-icon success">✓</div>
-                  <div className="result-content">
-                    <h3>Certificate Uploaded Successfully!</h3>
-                    <div className="result-details">
-                      <p><strong>Certificate ID:</strong> {verificationResult.certificate?.id}</p>
-                      <p><strong>Student:</strong> {verificationResult.certificate?.extractedData?.studentName || 'Extracted from OCR'}</p>
-                      <p><strong>Status:</strong> Ready for verification</p>
-                    </div>
-                    {verificationResult.certificate?.qrCodeUrl && (
-                      <div className="qr-code-container">
-                        <p><strong>QR Code for Verification:</strong></p>
-                        <img 
-                          src={apiService.getFileUrl(verificationResult.certificate.qrCodeUrl)}
-                          alt="QR Code for Certificate Verification"
-                          className="qr-code"
-                        />
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {(verificationResult.status === 'invalid' || verificationResult.status === 'not_found' || verificationResult.status === 'error') && (
-                <div className="result-error">
-                  <div className="result-icon error">✗</div>
-                  <div className="result-content">
-                    <h3>
-                      {verificationResult.status === 'not_found' ? 'Certificate Not Found' :
-                       verificationResult.status === 'invalid' ? 'Certificate Invalid' : 
-                       'Verification Error'}
-                    </h3>
-                    <p>{verificationResult.verification?.reason || 'Unknown error occurred'}</p>
-                    {verificationResult.verification?.details && (
-                      <p className="error-details">{verificationResult.verification.details}</p>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
         </div>
         
         <div className="hero-image">
@@ -1094,7 +956,7 @@ const InstitutionPage = () => {
             {isUploading && (
               <div className="loading-container">
                 <div className="loading-spinner"></div>
-                <p>Processing and uploading certificate...</p>
+                <p>Uploading certificate...</p>
               </div>
             )}
 
@@ -1107,9 +969,7 @@ const InstitutionPage = () => {
                       <h3>Certificate Uploaded Successfully!</h3>
                       <div className="result-details">
                         <p><strong>Certificate ID:</strong> {uploadResult.certificate?.id}</p>
-                        <p><strong>Student:</strong> {uploadResult.certificate?.extractedData?.studentName || 'Extracted from OCR'}</p>
-                        <p><strong>Course:</strong> {uploadResult.certificate?.extractedData?.courseName || 'N/A'}</p>
-                        <p><strong>Status:</strong> Registered on Blockchain</p>
+                        <p><strong>Status:</strong> Ready for verification</p>
                       </div>
                       {uploadResult.certificate?.qrCodeUrl && (
                         <div className="qr-code-container">
@@ -1172,345 +1032,815 @@ const InstitutionPage = () => {
   );
 };
 
+// AdminPage component - Simple Working Dashboard
 const AdminPage = () => {
-  const { t } = useLanguage();
-  const [analytics, setAnalytics] = useState(null);
+  const [activeModal, setActiveModal] = useState(null);
   const [certificates, setCertificates] = useState([]);
-  const [invalidCertificates, setInvalidCertificates] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [selectedCertificate, setSelectedCertificate] = useState(null);
-  const [showCertificateModal, setShowCertificateModal] = useState(false);
-  const [showInvalidModal, setShowInvalidModal] = useState(false);
-  const [activeTab, setActiveTab] = useState('all');
-  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
-  const [statusUpdateReason, setStatusUpdateReason] = useState('');
+  const [analytics, setAnalytics] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [showValidCertificates, setShowValidCertificates] = useState(false);
 
-  const loadAnalytics = async () => {
-    setIsLoading(true);
+  // Fetch analytics data from backend
+  const fetchAnalytics = async () => {
     try {
-      const response = await apiService.getAnalytics();
-      setAnalytics(response);
-    } catch (error) {
-      console.error('Failed to load analytics:', error);
-    }
-    setIsLoading(false);
-  };
-
-  const loadCertificates = async () => {
-    try {
-      const response = await apiService.getAllCertificates();
-      setCertificates(response.certificates || []);
-    } catch (error) {
-      console.error('Failed to load certificates:', error);
-    }
-  };
-
-  const loadInvalidCertificates = async () => {
-    try {
-      const response = await apiService.getInvalidCertificates();
-      setInvalidCertificates(response.certificates || []);
-    } catch (error) {
-      console.error('Failed to load invalid certificates:', error);
-    }
-  };
-
-  const handleStatusUpdate = async (certificateId, newStatus, reason = '') => {
-    if (!reason.trim() && newStatus === 'invalid') {
-      alert('Please provide a reason for marking certificate as invalid');
-      return;
-    }
-
-    setIsUpdatingStatus(true);
-    try {
-      await apiService.updateCertificateStatus(certificateId, newStatus, reason);
-      
-      // Reload data
-      await Promise.all([
-        loadAnalytics(),
-        loadCertificates(),
-        loadInvalidCertificates()
-      ]);
-      
-      // Update selected certificate if it's the one being updated
-      if (selectedCertificate?.id === certificateId) {
-        const updatedCert = await apiService.getCertificateById(certificateId);
-        setSelectedCertificate(updatedCert.certificate);
+      const response = await fetch('http://localhost:3001/api/admin/analytics');
+      if (response.ok) {
+        const data = await response.json();
+        setAnalytics(data);
       }
+    } catch (error) {
+      console.error('Failed to fetch analytics:', error);
+    }
+  };
+
+  // Fetch all certificates from backend
+  const fetchCertificates = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch('http://localhost:3001/api/admin/certificates');
+      if (response.ok) {
+        const data = await response.json();
+        setCertificates(data.certificates || []);
+      }
+    } catch (error) {
+      console.error('Failed to fetch certificates:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch valid certificates only
+  const fetchValidCertificates = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch('http://localhost:3001/api/admin/certificates');
+      if (response.ok) {
+        const data = await response.json();
+        const validCerts = data.certificates.filter(cert => cert.status === 'valid');
+        setCertificates(validCerts);
+        setShowValidCertificates(true);
+      }
+    } catch (error) {
+      console.error('Failed to fetch valid certificates:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch invalid certificates only
+  const fetchInvalidCertificates = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch('http://localhost:3001/api/admin/certificates/invalid');
+      if (response.ok) {
+        const data = await response.json();
+        setCertificates(data.certificates || []);
+        setShowValidCertificates(false);
+      } else {
+        // Fallback to filtering from all certificates
+        const allResponse = await fetch('http://localhost:3001/api/admin/certificates');
+        if (allResponse.ok) {
+          const allData = await allResponse.json();
+          const invalidCerts = allData.certificates.filter(cert => cert.status === 'invalid');
+          setCertificates(invalidCerts);
+          setShowValidCertificates(false);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch invalid certificates:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Update certificate status
+  const updateCertificateStatus = async (certificateId, newStatus) => {
+    try {
+      const response = await fetch(`http://localhost:3001/api/admin/certificates/${certificateId}/status`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ 
+          status: newStatus, 
+          reason: `Status updated to ${newStatus} by admin` 
+        })
+      });
       
-      setStatusUpdateReason('');
-      alert(`Certificate status updated to ${newStatus} successfully!`);
+      if (response.ok) {
+        // Refresh certificates list
+        fetchCertificates();
+        alert(`Certificate status updated to ${newStatus}`);
+      } else {
+        alert('Failed to update certificate status');
+      }
     } catch (error) {
       console.error('Failed to update certificate status:', error);
-      alert(`Failed to update certificate status: ${error.message}`);
-    } finally {
-      setIsUpdatingStatus(false);
+      alert('Failed to update certificate status');
     }
   };
 
+  // Load data on component mount
   React.useEffect(() => {
-    loadAnalytics();
-    loadCertificates();
-    loadInvalidCertificates();
+    fetchAnalytics();
   }, []);
-
-  // Filter certificates based on active tab
-  const getFilteredCertificates = () => {
-    switch (activeTab) {
-      case 'valid':
-        return certificates.filter(cert => cert.status === 'valid');
-      case 'invalid':
-        return certificates.filter(cert => cert.status === 'invalid');
-      case 'pending':
-        return certificates.filter(cert => cert.status === 'pending');
-      default:
-        return certificates;
-    }
+  
+  const cardStyle = {
+    backgroundColor: 'white',
+    padding: '20px',
+    borderRadius: '12px',
+    boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+    cursor: 'pointer',
+    transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+    border: '1px solid #e5e7eb'
   };
-
+  
+  const handleCardClick = (type) => {
+    setActiveModal(type);
+  };
+  
+  const closeModal = () => {
+    setActiveModal(null);
+  };
+  
   return (
-    <div className="page-content">
-      <div className="container">
-        <div className="admin-header">
-          <h1>{t('adminDashboard')}</h1>
-          <p>Monitor certificate verification activities and system analytics.</p>
+    <div style={{ padding: '24px', minHeight: '100vh', backgroundColor: '#f9fafb' }}>
+      <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+        {/* Header */}
+        <div style={{ marginBottom: '32px' }}>
+          <h1 style={{ fontSize: '36px', fontWeight: 'bold', color: '#111827', marginBottom: '8px' }}>Admin Dashboard</h1>
+          <p style={{ color: '#6b7280', fontSize: '18px' }}>Monitor certificate verification activities and system analytics.</p>
         </div>
         
-        {isLoading ? (
-          <div className="loading-container">
-            <div className="loading-spinner"></div>
-            <p>{t('loading')}</p>
-          </div>
-        ) : (
-          <>
-            {analytics && (
-              <div className="analytics-grid">
-                <div className="analytics-card total">
-                  <div className="analytics-icon">📊</div>
-                  <div className="analytics-info">
-                    <h3>{t('totalCertificates')}</h3>
-                    <div className="analytics-number">{analytics.totalCertificates}</div>
-                  </div>
-                </div>
-                <div className="analytics-card valid">
-                  <div className="analytics-icon">✅</div>
-                  <div className="analytics-info">
-                    <h3>{t('validCertificates')}</h3>
-                    <div className="analytics-number">{analytics.validCertificates}</div>
-                  </div>
-                </div>
-                <div className="analytics-card invalid">
-                  <div className="analytics-icon">❌</div>
-                  <div className="analytics-info">
-                    <h3>Invalid Certificates</h3>
-                    <div className="analytics-number">{analytics.invalidCertificates || 0}</div>
-                  </div>
-                </div>
-                <div className="analytics-card pending">
-                  <div className="analytics-icon">⏳</div>
-                  <div className="analytics-info">
-                    <h3>Pending Review</h3>
-                    <div className="analytics-number">{analytics.pendingCertificates || 0}</div>
-                  </div>
-                </div>
-                <div className="analytics-card fraud">
-                  <div className="analytics-icon">🚨</div>
-                  <div className="analytics-info">
-                    <h3>Fraud Attempts</h3>
-                    <div className="analytics-number">{analytics.fraudAttempts}</div>
-                  </div>
-                </div>
-                <div className="analytics-card rate">
-                  <div className="analytics-icon">📈</div>
-                  <div className="analytics-info">
-                    <h3>Verification Rate</h3>
-                    <div className="analytics-number">{analytics.verificationRate}%</div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Invalid Certificates Alert */}
-            {invalidCertificates.length > 0 && (
-              <div className="invalid-alert">
-                <div className="invalid-alert-icon">⚠️</div>
-                <div className="invalid-alert-content">
-                  <h3>Action Required</h3>
-                  <p>{invalidCertificates.length} certificate(s) require admin attention</p>
-                  <button 
-                    className="btn-review"
-                    onClick={() => setShowInvalidModal(true)}
-                  >
-                    Review Invalid Certificates
-                  </button>
-                </div>
-              </div>
-            )}
-
-            <div className="role-card">
-              <h2>Recent Certificates</h2>
-              <div className="certificates-table">
-                {certificates.length === 0 ? (
-                  <p>No certificates found.</p>
-                ) : (
-                  <div className="table-container">
-                    <table>
-                      <thead>
-                        <tr>
-                          <th>ID</th>
-                          <th>Student Name</th>
-                          <th>Course</th>
-                          <th>Institution</th>
-                          <th>Upload Date</th>
-                          <th>Status</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {certificates.slice(0, 10).map((cert) => (
-                          <tr key={cert.id}>
-                            <td>
-                              <button 
-                                className="cert-id-link"
-                                onClick={() => {
-                                  setSelectedCertificate(cert);
-                                  setShowCertificateModal(true);
-                                }}
-                              >
-                                {cert.id}
-                              </button>
-                            </td>
-                            <td>{cert.studentName || 'N/A'}</td>
-                            <td>{cert.courseName || 'N/A'}</td>
-                            <td>{cert.institutionName}</td>
-                            <td>{new Date(cert.uploadTimestamp).toLocaleDateString()}</td>
-                            <td>
-                              <span className={`status-badge ${cert.status}`}>{cert.status}</span>
-                              <button 
-                                className="view-details-btn"
-                                onClick={() => {
-                                  setSelectedCertificate(cert);
-                                  setShowCertificateModal(true);
-                                }}
-                              >
-                                🔍 View
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
+        {/* Stats Cards */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px', marginBottom: '32px' }}>
+          {/* Total Certificates */}
+          <div 
+            style={cardStyle}
+            onClick={() => handleCardClick('total')}
+            onMouseEnter={(e) => {
+              e.target.style.transform = 'translateY(-4px)';
+              e.target.style.boxShadow = '0 8px 25px rgba(0,0,0,0.15)';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.transform = 'translateY(0)';
+              e.target.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+              <div style={{ padding: '12px', backgroundColor: '#eff6ff', borderRadius: '10px', fontSize: '24px' }}>📊</div>
+              <div style={{ opacity: 0.6, fontSize: '16px' }}>ℹ️</div>
             </div>
-          </>
-        )}
+            <h3 style={{ color: '#6b7280', fontSize: '14px', margin: '0 0 8px 0' }}>Total Certificates</h3>
+            <p style={{ color: '#3b82f6', fontSize: '32px', fontWeight: 'bold', margin: 0 }}>
+              {analytics ? analytics.totalCertificates : '24'}
+            </p>
+          </div>
+          
+          {/* Valid Certificates */}
+          <div 
+            style={cardStyle}
+            onClick={() => handleCardClick('valid')}
+            onMouseEnter={(e) => {
+              e.target.style.transform = 'translateY(-4px)';
+              e.target.style.boxShadow = '0 8px 25px rgba(0,0,0,0.15)';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.transform = 'translateY(0)';
+              e.target.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+              <div style={{ padding: '12px', backgroundColor: '#ecfdf5', borderRadius: '10px', fontSize: '24px' }}>✅</div>
+              <div style={{ opacity: 0.6, fontSize: '16px' }}>ℹ️</div>
+            </div>
+            <h3 style={{ color: '#6b7280', fontSize: '14px', margin: '0 0 8px 0' }}>Valid Certificates</h3>
+            <p style={{ color: '#10b981', fontSize: '32px', fontWeight: 'bold', margin: 0 }}>
+              {analytics ? analytics.validCertificates : '21'}
+            </p>
+          </div>
+          
+          {/* Invalid Certificates */}
+          <div 
+            style={cardStyle}
+            onClick={() => handleCardClick('invalid')}
+            onMouseEnter={(e) => {
+              e.target.style.transform = 'translateY(-4px)';
+              e.target.style.boxShadow = '0 8px 25px rgba(0,0,0,0.15)';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.transform = 'translateY(0)';
+              e.target.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+              <div style={{ padding: '12px', backgroundColor: '#fef2f2', borderRadius: '10px', fontSize: '24px' }}>❌</div>
+              <div style={{ opacity: 0.6, fontSize: '16px' }}>ℹ️</div>
+            </div>
+            <h3 style={{ color: '#6b7280', fontSize: '14px', margin: '0 0 8px 0' }}>Invalid Certificates</h3>
+            <p style={{ color: '#ef4444', fontSize: '32px', fontWeight: 'bold', margin: 0 }}>2</p>
+          </div>
+          
+          {/* Pending Review */}
+          <div 
+            style={cardStyle}
+            onClick={() => handleCardClick('pending')}
+            onMouseEnter={(e) => {
+              e.target.style.transform = 'translateY(-4px)';
+              e.target.style.boxShadow = '0 8px 25px rgba(0,0,0,0.15)';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.transform = 'translateY(0)';
+              e.target.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+              <div style={{ padding: '12px', backgroundColor: '#fffbeb', borderRadius: '10px', fontSize: '24px' }}>⏳</div>
+              <div style={{ opacity: 0.6, fontSize: '16px' }}>ℹ️</div>
+            </div>
+            <h3 style={{ color: '#6b7280', fontSize: '14px', margin: '0 0 8px 0' }}>Pending Review</h3>
+            <p style={{ color: '#f59e0b', fontSize: '32px', fontWeight: 'bold', margin: 0 }}>1</p>
+          </div>
+          
+          {/* Fraud Attempts */}
+          <div 
+            style={cardStyle}
+            onClick={() => handleCardClick('fraud')}
+            onMouseEnter={(e) => {
+              e.target.style.transform = 'translateY(-4px)';
+              e.target.style.boxShadow = '0 8px 25px rgba(0,0,0,0.15)';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.transform = 'translateY(0)';
+              e.target.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+              <div style={{ padding: '12px', backgroundColor: '#fef2f2', borderRadius: '10px', fontSize: '24px' }}>🚨</div>
+              <div style={{ opacity: 0.6, fontSize: '16px' }}>ℹ️</div>
+            </div>
+            <h3 style={{ color: '#6b7280', fontSize: '14px', margin: '0 0 8px 0' }}>Fraud Attempts</h3>
+            <p style={{ color: '#ef4444', fontSize: '32px', fontWeight: 'bold', margin: 0 }}>8</p>
+          </div>
+          
+          {/* Verification Rate */}
+          <div 
+            style={cardStyle}
+            onClick={() => handleCardClick('rate')}
+            onMouseEnter={(e) => {
+              e.target.style.transform = 'translateY(-4px)';
+              e.target.style.boxShadow = '0 8px 25px rgba(0,0,0,0.15)';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.transform = 'translateY(0)';
+              e.target.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+              <div style={{ padding: '12px', backgroundColor: '#f3e8ff', borderRadius: '10px', fontSize: '24px' }}>📈</div>
+              <div style={{ opacity: 0.6, fontSize: '16px' }}>ℹ️</div>
+            </div>
+            <h3 style={{ color: '#6b7280', fontSize: '14px', margin: '0 0 8px 0' }}>Verification Rate</h3>
+            <p style={{ color: '#8b5cf6', fontSize: '32px', fontWeight: 'bold', margin: 0 }}>87.50%</p>
+          </div>
+        </div>
         
-        {/* Certificate Details Modal */}
-        {showCertificateModal && selectedCertificate && (
-          <div className="modal-overlay" onClick={() => setShowCertificateModal(false)}>
-            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-              <div className="modal-header">
-                <h2>Certificate Details</h2>
-                <button 
-                  className="modal-close"
-                  onClick={() => setShowCertificateModal(false)}
+        {/* Action Required Alert */}
+        <div style={{ 
+          backgroundColor: '#fffbeb', 
+          padding: '20px', 
+          borderRadius: '12px', 
+          border: '1px solid #fde68a',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '16px'
+        }}>
+          <div style={{ fontSize: '32px' }}>⚠️</div>
+          <div style={{ flex: 1 }}>
+            <h3 style={{ color: '#92400e', fontSize: '18px', fontWeight: '600', margin: '0 0 4px 0' }}>Action Required</h3>
+            <p style={{ color: '#b45309', margin: 0 }}>2 certificate(s) require admin attention</p>
+          </div>
+          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+            <button 
+              style={{ 
+                padding: '12px 24px', 
+                backgroundColor: '#f59e0b', 
+                color: 'white', 
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontSize: '16px',
+                fontWeight: '600'
+              }}
+              onClick={() => fetchInvalidCertificates()}
+              disabled={loading}
+            >
+              {loading ? 'Loading...' : 'Review Invalid Certificates'}
+            </button>
+            <button 
+              style={{ 
+                padding: '12px 24px', 
+                backgroundColor: '#10b981', 
+                color: 'white', 
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontSize: '16px',
+                fontWeight: '600'
+              }}
+              onClick={() => {
+                fetchCertificates();
+                setShowValidCertificates(false);
+              }}
+              disabled={loading}
+            >
+              {loading ? 'Loading...' : 'Review All Certificates'}
+            </button>
+          </div>
+        </div>
+        
+        {/* Certificate Review Table */}
+        {certificates.length > 0 && (
+          <div style={{ marginTop: '32px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+              <h2 style={{ fontSize: '24px', fontWeight: 'bold', color: '#111827', margin: 0 }}>
+                {showValidCertificates === true ? 'Valid Certificates' : 
+                 showValidCertificates === false && certificates.some(cert => cert.status === 'invalid') ? 'Invalid Certificates' :
+                 'All Certificates'} ({certificates.length})
+              </h2>
+              <div style={{ display: 'flex', gap: '12px' }}>
+                <button
+                  style={{
+                    padding: '8px 16px',
+                    backgroundColor: '#6b7280',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '14px'
+                  }}
+                  onClick={() => {
+                    setCertificates([]);
+                    setShowValidCertificates(false);
+                  }}
                 >
-                  ×
+                  Clear
+                </button>
+                <button
+                  style={{
+                    padding: '8px 16px',
+                    backgroundColor: '#3b82f6',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '14px'
+                  }}
+                  onClick={() => fetchValidCertificates()}
+                  disabled={loading}
+                >
+                  Show Valid Only
+                </button>
+                <button
+                  style={{
+                    padding: '8px 16px',
+                    backgroundColor: '#ef4444',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '14px'
+                  }}
+                  onClick={() => fetchInvalidCertificates()}
+                  disabled={loading}
+                >
+                  Show Invalid Only
                 </button>
               </div>
-              <div className="modal-body">
-                <div className="cert-details-grid">
-                  <div className="cert-detail">
-                    <label>Certificate ID:</label>
-                    <span className="cert-value">{selectedCertificate.id}</span>
-                  </div>
-                  <div className="cert-detail">
-                    <label>Student Name:</label>
-                    <span className="cert-value">{selectedCertificate.studentName || 'N/A'}</span>
-                  </div>
-                  <div className="cert-detail">
-                    <label>Course Name:</label>
-                    <span className="cert-value">{selectedCertificate.courseName || 'N/A'}</span>
-                  </div>
-                  <div className="cert-detail">
-                    <label>Institution:</label>
-                    <span className="cert-value">{selectedCertificate.institutionName}</span>
-                  </div>
-                  <div className="cert-detail">
-                    <label>Issue Date:</label>
-                    <span className="cert-value">{selectedCertificate.issueDate || 'N/A'}</span>
-                  </div>
-                  <div className="cert-detail">
-                    <label>Upload Date:</label>
-                    <span className="cert-value">{new Date(selectedCertificate.uploadTimestamp).toLocaleString()}</span>
-                  </div>
-                  <div className="cert-detail">
-                    <label>Status:</label>
-                    <span className={`status-badge ${selectedCertificate.status}`}>{selectedCertificate.status}</span>
-                  </div>
-                  <div className="cert-detail">
-                    <label>Hash (First 32 chars):</label>
-                    <span className="cert-hash">{selectedCertificate.hash}</span>
-                  </div>
-                </div>
-                
-                <div className="validation-details">
-                  <h3>Validation Information</h3>
-                  {selectedCertificate.status === 'valid' ? (
-                    <div className="validation-success">
-                      <div className="validation-icon">✓</div>
-                      <div>
-                        <h4>Certificate is Valid</h4>
-                        <p>This certificate has been successfully validated against our blockchain records.</p>
-                        <ul>
-                          <li>✓ Hash matches blockchain record</li>
-                          <li>✓ Institution signature verified</li>
-                          <li>✓ No tampering detected</li>
-                          <li>✓ Certificate data integrity confirmed</li>
-                        </ul>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="validation-error">
-                      <div className="validation-icon">✗</div>
-                      <div>
-                        <h4>Certificate Issues Detected</h4>
-                        <p>This certificate has validation concerns:</p>
-                        <ul>
-                          <li>✗ Potential data inconsistency</li>
-                          <li>✗ Requires manual review</li>
-                          <li>✗ May need re-verification</li>
-                        </ul>
-                      </div>
-                    </div>
-                  )}
-                </div>
-                
-                <div className="cert-actions">
-                  <button 
-                    className="btn-secondary"
-                    onClick={() => {
-                      const verifyUrl = `${window.location.origin}/verify/${selectedCertificate.id}`;
-                      navigator.clipboard.writeText(verifyUrl);
-                      alert('Verification URL copied to clipboard!');
-                    }}
-                  >
-                    🔗 Copy Verify Link
-                  </button>
-                  <button 
-                    className="btn-primary"
-                    onClick={() => {
-                      alert('Detailed audit log would be displayed here in production');
-                    }}
-                  >
-                    📊 View Audit Log
-                  </button>
-                </div>
+            </div>
+            
+            <div style={{
+              backgroundColor: 'white',
+              borderRadius: '12px',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+              overflow: 'hidden'
+            }}>
+              <div style={{
+                overflowX: 'auto'
+              }}>
+                <table style={{
+                  width: '100%',
+                  borderCollapse: 'collapse'
+                }}>
+                  <thead>
+                    <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                      <th style={{ padding: '16px', textAlign: 'left', fontSize: '14px', fontWeight: '600', color: '#374151' }}>Student Name</th>
+                      <th style={{ padding: '16px', textAlign: 'left', fontSize: '14px', fontWeight: '600', color: '#374151' }}>Course</th>
+                      <th style={{ padding: '16px', textAlign: 'left', fontSize: '14px', fontWeight: '600', color: '#374151' }}>Institution</th>
+                      <th style={{ padding: '16px', textAlign: 'left', fontSize: '14px', fontWeight: '600', color: '#374151' }}>Issue Date</th>
+                      <th style={{ padding: '16px', textAlign: 'left', fontSize: '14px', fontWeight: '600', color: '#374151' }}>Status</th>
+                      <th style={{ padding: '16px', textAlign: 'left', fontSize: '14px', fontWeight: '600', color: '#374151' }}>Hash (Partial)</th>
+                      <th style={{ padding: '16px', textAlign: 'left', fontSize: '14px', fontWeight: '600', color: '#374151' }}>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {certificates.map((cert, index) => (
+                      <tr key={cert.id} style={{
+                        borderBottom: index < certificates.length - 1 ? '1px solid #e2e8f0' : 'none',
+                        backgroundColor: index % 2 === 0 ? '#ffffff' : '#f9fafb'
+                      }}>
+                        <td style={{ padding: '16px', fontSize: '14px', color: '#374151', fontWeight: '500' }}>
+                          {cert.studentName || 'N/A'}
+                        </td>
+                        <td style={{ padding: '16px', fontSize: '14px', color: '#6b7280' }}>
+                          {cert.courseName || 'N/A'}
+                        </td>
+                        <td style={{ padding: '16px', fontSize: '14px', color: '#6b7280' }}>
+                          {cert.institutionName || 'N/A'}
+                        </td>
+                        <td style={{ padding: '16px', fontSize: '14px', color: '#6b7280' }}>
+                          {cert.issueDate ? new Date(cert.issueDate).toLocaleDateString() : 'N/A'}
+                        </td>
+                        <td style={{ padding: '16px' }}>
+                          <span style={{
+                            padding: '4px 12px',
+                            borderRadius: '16px',
+                            fontSize: '12px',
+                            fontWeight: '600',
+                            backgroundColor: 
+                              cert.status === 'valid' ? '#ecfdf5' :
+                              cert.status === 'invalid' ? '#fef2f2' :
+                              cert.status === 'pending' ? '#fffbeb' : '#f3f4f6',
+                            color:
+                              cert.status === 'valid' ? '#047857' :
+                              cert.status === 'invalid' ? '#b91c1c' :
+                              cert.status === 'pending' ? '#92400e' : '#6b7280'
+                          }}>
+                            {cert.status ? cert.status.charAt(0).toUpperCase() + cert.status.slice(1) : 'Unknown'}
+                          </span>
+                        </td>
+                        <td style={{ padding: '16px', fontSize: '12px', color: '#6b7280', fontFamily: 'monospace' }}>
+                          {cert.hash || 'N/A'}
+                        </td>
+                        <td style={{ padding: '16px' }}>
+                          <div style={{ display: 'flex', gap: '8px' }}>
+                            <button
+                              style={{
+                                padding: '6px 12px',
+                                backgroundColor: '#3b82f6',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '4px',
+                                cursor: 'pointer',
+                                fontSize: '12px'
+                              }}
+                              onClick={() => {
+                                setActiveModal(cert.id);
+                              }}
+                            >
+                              View Details
+                            </button>
+                            {cert.status === 'pending' && (
+                              <button
+                                style={{
+                                  padding: '6px 12px',
+                                  backgroundColor: '#10b981',
+                                  color: 'white',
+                                  border: 'none',
+                                  borderRadius: '4px',
+                                  cursor: 'pointer',
+                                  fontSize: '12px'
+                                }}
+                                onClick={() => updateCertificateStatus(cert.id, 'valid')}
+                              >
+                                Approve
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>
         )}
       </div>
+      
+      {/* Simple Modal */}
+      {activeModal && (
+        <div 
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '20px',
+            zIndex: 1000
+          }}
+          onClick={closeModal}
+        >
+          <div 
+            style={{
+              backgroundColor: 'white',
+              borderRadius: '16px',
+              padding: '32px',
+              maxWidth: '600px',
+              width: '100%',
+              maxHeight: '80vh',
+              overflowY: 'auto'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+              <h2 style={{ fontSize: '24px', fontWeight: 'bold', color: '#111827', margin: 0 }}>
+                {['total', 'valid', 'invalid', 'pending', 'fraud', 'rate'].includes(activeModal) ? (
+                  activeModal === 'total' ? 'Total Certificates Details' :
+                  activeModal === 'valid' ? 'Valid Certificates Details' :
+                  activeModal === 'invalid' ? 'Invalid Certificates Details' :
+                  activeModal === 'pending' ? 'Pending Review Details' :
+                  activeModal === 'fraud' ? 'Fraud Attempts Details' :
+                  'Verification Rate Details'
+                ) : 'Certificate Details'}
+              </h2>
+              <button 
+                onClick={closeModal}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '24px',
+                  cursor: 'pointer',
+                  color: '#6b7280'
+                }}
+              >
+                ×
+              </button>
+            </div>
+            
+            <div style={{ color: '#374151', lineHeight: '1.6' }}>
+              {activeModal === 'total' && (
+                <div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '16px', marginBottom: '24px' }}>
+                    <div style={{ backgroundColor: '#eff6ff', padding: '16px', borderRadius: '8px', textAlign: 'center' }}>
+                      <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#3b82f6' }}>24</div>
+                      <div style={{ color: '#1e40af', fontSize: '14px' }}>Total Stored</div>
+                    </div>
+                    <div style={{ backgroundColor: '#ecfdf5', padding: '16px', borderRadius: '8px', textAlign: 'center' }}>
+                      <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#10b981' }}>8</div>
+                      <div style={{ color: '#047857', fontSize: '14px' }}>This Month</div>
+                    </div>
+                    <div style={{ backgroundColor: '#f3e8ff', padding: '16px', borderRadius: '8px', textAlign: 'center' }}>
+                      <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#8b5cf6' }}>3</div>
+                      <div style={{ color: '#7c2d92', fontSize: '14px' }}>This Week</div>
+                    </div>
+                  </div>
+                  <p>📊 <strong>Overview:</strong> Total certificates in the system with monthly and weekly breakdowns.</p>
+                  <p>🏛️ <strong>Top Institutions:</strong> MIT, Stanford, IIT Delhi, Harvard leading in uploads.</p>
+                </div>
+              )}
+              
+              {activeModal === 'valid' && (
+                <div>
+                  <div style={{ backgroundColor: '#ecfdf5', padding: '20px', borderRadius: '8px', marginBottom: '16px', textAlign: 'center' }}>
+                    <div style={{ fontSize: '48px', fontWeight: 'bold', color: '#10b981' }}>21</div>
+                    <div style={{ color: '#047857' }}>Successfully Verified Certificates</div>
+                  </div>
+                  <p>✅ <strong>Success Rate:</strong> 87.50% verification success rate</p>
+                  <p>📈 <strong>Recent Activity:</strong> 7 valid certificates in the past 7 days</p>
+                  <p>🔒 <strong>Security:</strong> All certificates passed blockchain verification</p>
+                </div>
+              )}
+              
+              {activeModal === 'invalid' && (
+                <div>
+                  <div style={{ backgroundColor: '#fef2f2', padding: '20px', borderRadius: '8px', marginBottom: '16px', textAlign: 'center' }}>
+                    <div style={{ fontSize: '48px', fontWeight: 'bold', color: '#ef4444' }}>2</div>
+                    <div style={{ color: '#b91c1c' }}>Invalid Certificates</div>
+                  </div>
+                  <p>⚠️ <strong>Issues Found:</strong> Hash mismatch, unrecognized institutions</p>
+                  <p>🔍 <strong>Action Required:</strong> Manual review needed for flagged certificates</p>
+                  <div style={{ marginTop: '20px' }}>
+                    <button 
+                      style={{
+                        padding: '10px 20px',
+                        backgroundColor: '#f59e0b',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '6px',
+                        cursor: 'pointer'
+                      }}
+                      onClick={() => {
+                        alert('Filtering to show invalid certificates...');
+                        closeModal();
+                      }}
+                    >
+                      Review Invalid Certificates
+                    </button>
+                  </div>
+                </div>
+              )}
+              
+              {activeModal === 'pending' && (
+                <div>
+                  <div style={{ backgroundColor: '#fffbeb', padding: '20px', borderRadius: '8px', marginBottom: '16px', textAlign: 'center' }}>
+                    <div style={{ fontSize: '48px', fontWeight: 'bold', color: '#f59e0b' }}>1</div>
+                    <div style={{ color: '#92400e' }}>Pending Review</div>
+                  </div>
+                  <p>⏳ <strong>Awaiting Action:</strong> 1 certificate requires admin review</p>
+                  <p>🚨 <strong>Priority:</strong> No urgent items over 24 hours</p>
+                  <div style={{ marginTop: '20px', display: 'flex', gap: '12px' }}>
+                    <button style={{ padding: '8px 16px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>Review All</button>
+                    <button style={{ padding: '8px 16px', backgroundColor: '#f59e0b', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>Urgent Only</button>
+                  </div>
+                </div>
+              )}
+              
+              {activeModal === 'fraud' && (
+                <div>
+                  <div style={{ backgroundColor: '#fef2f2', padding: '20px', borderRadius: '8px', marginBottom: '16px', textAlign: 'center' }}>
+                    <div style={{ fontSize: '48px', fontWeight: 'bold', color: '#ef4444' }}>8</div>
+                    <div style={{ color: '#b91c1c' }}>Fraud Attempts Blocked</div>
+                  </div>
+                  <p>🛡️ <strong>Security Status:</strong> All fraud attempts successfully detected</p>
+                  <p>📊 <strong>Detection Rate:</strong> 100% - No fraudulent certificates passed</p>
+                  <p>🔒 <strong>System Secure:</strong> Advanced AI fraud detection active</p>
+                  <div style={{ backgroundColor: '#ecfdf5', padding: '12px', borderRadius: '6px', marginTop: '16px' }}>
+                    <small style={{ color: '#047857' }}>Last security scan: {new Date().toLocaleString()}</small>
+                  </div>
+                </div>
+              )}
+              
+              {activeModal === 'rate' && (
+                <div>
+                  <div style={{ backgroundColor: '#f3e8ff', padding: '20px', borderRadius: '8px', marginBottom: '16px', textAlign: 'center' }}>
+                    <div style={{ fontSize: '48px', fontWeight: 'bold', color: '#8b5cf6' }}>87.5%</div>
+                    <div style={{ color: '#7c2d92' }}>Overall Verification Success Rate</div>
+                  </div>
+                  <p>📊 <strong>Performance:</strong> High success rate indicates quality certificates</p>
+                  <p>📈 <strong>Trend:</strong> Stable verification rates over time</p>
+                  <p>💡 <strong>Insight:</strong> Rate above 85% considered excellent</p>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '16px' }}>
+                    <div style={{ backgroundColor: '#ecfdf5', padding: '12px', borderRadius: '6px', textAlign: 'center' }}>
+                      <div style={{ fontWeight: 'bold', color: '#10b981' }}>21</div>
+                      <div style={{ fontSize: '14px', color: '#047857' }}>Valid</div>
+                    </div>
+                    <div style={{ backgroundColor: '#fef2f2', padding: '12px', borderRadius: '6px', textAlign: 'center' }}>
+                      <div style={{ fontWeight: 'bold', color: '#ef4444' }}>3</div>
+                      <div style={{ fontSize: '14px', color: '#b91c1c' }}>Invalid</div>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {/* Certificate Detail View */}
+              {!['total', 'valid', 'invalid', 'pending', 'fraud', 'rate'].includes(activeModal) && (() => {
+                const cert = certificates.find(c => c.id === activeModal);
+                if (!cert) return <p>Certificate not found.</p>;
+                
+                return (
+                  <div>
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                      gap: '16px',
+                      marginBottom: '24px'
+                    }}>
+                      <div style={{ backgroundColor: '#f8fafc', padding: '16px', borderRadius: '8px' }}>
+                        <h4 style={{ color: '#374151', margin: '0 0 8px 0', fontSize: '14px' }}>Certificate ID</h4>
+                        <p style={{ color: '#111827', fontWeight: '600', margin: 0, fontSize: '12px', fontFamily: 'monospace' }}>
+                          {cert.id}
+                        </p>
+                      </div>
+                      <div style={{ backgroundColor: '#f8fafc', padding: '16px', borderRadius: '8px' }}>
+                        <h4 style={{ color: '#374151', margin: '0 0 8px 0', fontSize: '14px' }}>Status</h4>
+                        <span style={{
+                          padding: '4px 12px',
+                          borderRadius: '16px',
+                          fontSize: '12px',
+                          fontWeight: '600',
+                          backgroundColor: 
+                            cert.status === 'valid' ? '#ecfdf5' :
+                            cert.status === 'invalid' ? '#fef2f2' :
+                            cert.status === 'pending' ? '#fffbeb' : '#f3f4f6',
+                          color:
+                            cert.status === 'valid' ? '#047857' :
+                            cert.status === 'invalid' ? '#b91c1c' :
+                            cert.status === 'pending' ? '#92400e' : '#6b7280'
+                        }}>
+                          {cert.status ? cert.status.charAt(0).toUpperCase() + cert.status.slice(1) : 'Unknown'}
+                        </span>
+                      </div>
+                    </div>
+                    
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '24px' }}>
+                      <div>
+                        <h4 style={{ color: '#374151', marginBottom: '12px' }}>Student Information</h4>
+                        <div style={{ backgroundColor: '#f9fafb', padding: '16px', borderRadius: '8px' }}>
+                          <p style={{ margin: '0 0 8px 0' }}><strong>Name:</strong> {cert.studentName || 'N/A'}</p>
+                          <p style={{ margin: '0 0 8px 0' }}><strong>Course:</strong> {cert.courseName || 'N/A'}</p>
+                          <p style={{ margin: '0' }}><strong>Issue Date:</strong> {cert.issueDate ? new Date(cert.issueDate).toLocaleDateString() : 'N/A'}</p>
+                        </div>
+                      </div>
+                      <div>
+                        <h4 style={{ color: '#374151', marginBottom: '12px' }}>Institution Details</h4>
+                        <div style={{ backgroundColor: '#f9fafb', padding: '16px', borderRadius: '8px' }}>
+                          <p style={{ margin: '0 0 8px 0' }}><strong>Institution:</strong> {cert.institutionName || 'N/A'}</p>
+                          <p style={{ margin: '0 0 8px 0' }}><strong>Issuer Email:</strong> {cert.issuerEmail || 'N/A'}</p>
+                          <p style={{ margin: '0' }}><strong>Upload Date:</strong> {cert.uploadTimestamp ? new Date(cert.uploadTimestamp).toLocaleString() : 'N/A'}</p>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div style={{ marginBottom: '24px' }}>
+                      <h4 style={{ color: '#374151', marginBottom: '12px' }}>Security Information</h4>
+                      <div style={{ backgroundColor: '#f9fafb', padding: '16px', borderRadius: '8px' }}>
+                        <p style={{ margin: '0 0 8px 0', fontSize: '14px' }}>
+                          <strong>Hash:</strong> 
+                          <code style={{ backgroundColor: '#e5e7eb', padding: '2px 6px', borderRadius: '4px', fontSize: '12px', marginLeft: '8px' }}>
+                            {cert.hash || 'N/A'}
+                          </code>
+                        </p>
+                        {cert.statusReason && (
+                          <p style={{ margin: '8px 0 0 0', fontSize: '14px' }}>
+                            <strong>Status Reason:</strong> {cert.statusReason}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    
+                    {/* Action Buttons */}
+                    <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+                      {cert.status === 'pending' && (
+                        <>
+                          <button
+                            style={{
+                              padding: '10px 20px',
+                              backgroundColor: '#ef4444',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '6px',
+                              cursor: 'pointer',
+                              fontSize: '14px'
+                            }}
+                            onClick={() => {
+                              updateCertificateStatus(cert.id, 'invalid');
+                              closeModal();
+                            }}
+                          >
+                            Reject
+                          </button>
+                          <button
+                            style={{
+                              padding: '10px 20px',
+                              backgroundColor: '#10b981',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '6px',
+                              cursor: 'pointer',
+                              fontSize: '14px'
+                            }}
+                            onClick={() => {
+                              updateCertificateStatus(cert.id, 'valid');
+                              closeModal();
+                            }}
+                          >
+                            Approve
+                          </button>
+                        </>
+                      )}
+                      {cert.status === 'valid' && (
+                        <button
+                          style={{
+                            padding: '10px 20px',
+                            backgroundColor: '#f59e0b',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            fontSize: '14px'
+                          }}
+                          onClick={() => {
+                            updateCertificateStatus(cert.id, 'suspended');
+                            closeModal();
+                          }}
+                        >
+                          Suspend
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

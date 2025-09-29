@@ -8,7 +8,13 @@
     "dev": "nodemon server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": ["certificate", "blockchain", "ocr", "verification", "education"],
+  "keywords": [
+    "certificate",
+    "blockchain",
+    "ocr",
+    "verification",
+    "education"
+  ],
   "author": "Abhishek Choure",
   "license": "MIT",
   "dependencies": {
